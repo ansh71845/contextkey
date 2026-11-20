@@ -1,9 +1,16 @@
-# ContextKey — AI Context Wallet
+# ContextKey — Local-First AI Context Wallet
 
-**Version:** 0.1 (experimental MVP)  
-**Product direction:** a local-first, user-controlled context vault for AI assistants.
+**Your context. Your choice.** Keep useful background in an encrypted, on-device vault. Choose exactly what goes into each task-specific context pack.
 
-ContextKey keeps useful personal context in one place and lets the user choose exactly which entries to include in a context pack. It is not another chatbot and it does not connect to any AI provider.
+<https://ansh71845.github.io/contextkey/>
+
+**Try the live app:** open the link above in Chrome. No account or AI API key is required. Create a vault, add a small sample entry, and build a context pack. On Android, use Chrome's **Add to Home screen** option if you want an app-like shortcut.
+
+> **Experimental MVP:** ContextKey is an early prototype, not a professionally audited security product. Test it with non-sensitive sample information only.
+
+## What ContextKey does
+
+ContextKey keeps useful personal context in one place and lets you choose which entries to include in a context pack. It is not another chatbot and it does not connect to any AI provider.
 
 ## What works in this MVP
 
@@ -21,11 +28,16 @@ ContextKey keeps useful personal context in one place and lets the user choose e
 
 The encryption API requires a secure browser origin. The simplest free route is GitHub Pages:
 
-1. Create a **public** GitHub repository for the app source. Do not put your personal context, exported packs, or `.ckvault` backups in the repository.
-2. Upload the contents of this project folder to the repository root: `index.html`, `styles.css`, `app.js`, `manifest.webmanifest`, `icon.svg`, `icon-192.png`, `icon-512.png`, and `sw.js`.
-3. In the repository, open **Settings → Pages** and set the build/deployment source to **GitHub Actions**. The included workflow deploys only the app files whenever changes are pushed to `main`.
-4. Open the Pages URL in Chrome on Android. Create your vault and choose **Add to Home screen** from Chrome's menu.
-5. Open the installed app, enter context, and create a pack from **Build a context pack**.
+1. Open the [live ContextKey app](https://ansh71845.github.io/contextkey/) in Chrome on Android.
+2. Create your vault using a strong passphrase that you can remember. There is no password-reset service.
+3. Add a few non-sensitive sample entries. Keep private entries marked private.
+4. Use **Build a context pack** to select only the entries needed for a task.
+5. Review the Markdown before copying or downloading it.
+6. Optionally choose **Add to Home screen** from Chrome's menu.
+
+To inspect the source, browse this repository. Do not put your personal context, exported packs, or `.ckvault` backups in the repository.
+
+## Where your data lives
 
 GitHub Pages hosts the app files, not your vault. The app does not send your entries to GitHub or to a ContextKey server. The encrypted vault is saved in that browser's local storage. GitHub Pages may still log visitor IP addresses and standard web-request metadata for its own security and operations; 'local-first' means your vault content is not uploaded by this app, not that the hosting visit is invisible.
 
