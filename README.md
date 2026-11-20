@@ -1,6 +1,6 @@
 # ContextKey — AI Context Wallet
 
-**Prototype:** v0.1  
+**Version:** 0.1 (experimental MVP)  
 **Product direction:** a local-first, user-controlled context vault for AI assistants.
 
 ContextKey keeps useful personal context in one place and lets the user choose exactly which entries to include in a context pack. It is not another chatbot and it does not connect to any AI provider.
@@ -23,7 +23,7 @@ The encryption API requires a secure browser origin. The simplest free route is 
 
 1. Create a **public** GitHub repository for the app source. Do not put your personal context, exported packs, or `.ckvault` backups in the repository.
 2. Upload the contents of this project folder to the repository root: `index.html`, `styles.css`, `app.js`, `manifest.webmanifest`, `icon.svg`, `icon-192.png`, `icon-512.png`, and `sw.js`.
-3. In the repository, open **Settings → Pages**. Choose **Deploy from a branch**, select `main` and `/ (root)`, then save.
+3. In the repository, open **Settings → Pages** and set the build/deployment source to **GitHub Actions**. The included Pages workflow deploys the repository root whenever changes are pushed to `main`.
 4. Open the Pages URL in Chrome on Android. Create your vault and choose **Add to Home screen** from Chrome's menu.
 5. Open the installed app, enter context, and create a pack from **Build a context pack**.
 
@@ -53,4 +53,4 @@ For local testing, serve this folder over HTTPS or through `localhost` (for exam
 
 **Share the minimum useful context for the current task.** An entry being saved in the vault does not make it shareable. Sharing is an explicit, separate choice.
 
-See `EXECUTIVE_SUMMARY.md` for the decision brief, `MARKET_RESEARCH.md` for the detailed market assessment, and `PRODUCT_PLAN.md` for the roadmap and validation gates.
+See `EXECUTIVE_SUMMARY.md` for the decision brief, `MARKET_RESEARCH.md` for the market assessment, and `PRODUCT_PLAN.md` for the roadmap and validation gates. These are research and planning documents, not proof of product-market fit.
