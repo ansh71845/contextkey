@@ -6,7 +6,7 @@
   --surface-muted: #eef1eb;
   --ink: #202b25;
   --muted: #56645b;
-  --soft: #718077;
+  --soft: #626f66;
   --line: #dfe4dc;
   --line-strong: #cbd5cc;
   --green: #315b48;
@@ -133,7 +133,7 @@ svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColo
 .gate-principles strong, .gate-principles small { display: block; }
 .gate-principles strong { font-size: 12px; font-weight: 700; }
 .gate-principles small { margin-top: 2px; color: var(--soft); font-size: 11px; }
-.gate-version { margin: 43px 0 0; color: #7d8980; font-size: 9px; font-weight: 700; letter-spacing: .12em; }
+.gate-version { margin: 43px 0 0; color: #626f66; font-size: 9px; font-weight: 700; letter-spacing: .12em; }
 .gate-version span { padding: 0 5px; color: #aab3aa; }
 .gate-access {
   padding: clamp(25px, 3.3vw, 38px);
@@ -181,7 +181,7 @@ svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColo
   transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
 }
 .field-group textarea { min-height: 126px; resize: vertical; line-height: 1.65; }
-.field-group input::placeholder, .field-group textarea::placeholder, .gate-fields input::placeholder, .search-wrap input::placeholder { color: #8a958e; }
+.field-group input::placeholder, .field-group textarea::placeholder, .gate-fields input::placeholder, .search-wrap input::placeholder { color: #65736a; }
 .field-group input:focus, .field-group select:focus, .field-group textarea:focus,
 .gate-fields input:focus, .select-panel select:focus, .search-wrap:focus-within {
   border-color: #72927e;
@@ -286,7 +286,7 @@ svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColo
 .side-note-icon svg { width: 17px; height: 17px; }
 .side-note strong { display: block; margin-top: 11px; font-size: 11px; font-weight: 700; }
 .side-note p { margin: 5px 0 0; color: var(--soft); font-size: 10px; line-height: 1.6; }
-.side-footer { margin: 17px 2px 0; color: #849087; font-size: 8px; font-weight: 700; letter-spacing: .1em; }
+.side-footer { margin: 17px 2px 0; color: #626f66; font-size: 8px; font-weight: 700; letter-spacing: .1em; }
 .side-footer span { padding: 0 3px; }
 .content-panel { min-width: 0; padding: 43px clamp(22px, 4.4vw, 62px) 24px; }
 .view { width: 100%; max-width: 1080px; animation: view-enter .18s ease-out; }
