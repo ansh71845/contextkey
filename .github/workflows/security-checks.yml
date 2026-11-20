@@ -1,0 +1,41 @@
+name: ContextKey security checks
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["security-hardening", "release-hardening"]
+
+permissions:
+  contents: read
+
+jobs:
+  security-checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: node --check app.js
+      - name: Run static security regression guards
+        run: node --test tests/security-guards.test.mjs
+      - name: Install Playwright
+        run: npm install --no-save --no-package-lock playwright@1.56.1
+      - name: Install Chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+      - name: Start static test server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/contextkey-server.log 2>&1 &
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/contextkey-server.log
+          exit 1
+      - name: Run browser security regression
+        run: node tests/browser-security.spec.cjs

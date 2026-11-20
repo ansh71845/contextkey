@@ -25,10 +25,14 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
+      - name: Prepare public site bundle
+        run: |
+          mkdir -p _site
+          cp index.html styles.css app.js manifest.webmanifest sw.js icon.svg icon-192.png icon-512.png _site/
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

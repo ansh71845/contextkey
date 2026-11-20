@@ -1,6 +1,6 @@
 # ContextKey — AI Context Wallet
 
-**Prototype:** v0.1  
+**Version:** 0.1 (experimental MVP)  
 **Product direction:** a local-first, user-controlled context vault for AI assistants.
 
 ContextKey keeps useful personal context in one place and lets the user choose exactly which entries to include in a context pack. It is not another chatbot and it does not connect to any AI provider.
@@ -23,7 +23,7 @@ The encryption API requires a secure browser origin. The simplest free route is 
 
 1. Create a **public** GitHub repository for the app source. Do not put your personal context, exported packs, or `.ckvault` backups in the repository.
 2. Upload the contents of this project folder to the repository root: `index.html`, `styles.css`, `app.js`, `manifest.webmanifest`, `icon.svg`, `icon-192.png`, `icon-512.png`, and `sw.js`.
-3. In the repository, open **Settings → Pages**. Choose **Deploy from a branch**, select `main` and `/ (root)`, then save.
+3. In the repository, open **Settings → Pages** and set the build/deployment source to **GitHub Actions**. The included workflow deploys only the app files whenever changes are pushed to `main`.
 4. Open the Pages URL in Chrome on Android. Create your vault and choose **Add to Home screen** from Chrome's menu.
 5. Open the installed app, enter context, and create a pack from **Build a context pack**.
 
@@ -43,14 +43,26 @@ Use **Encrypted backup** regularly. The `.ckvault` file is encrypted and can be 
 - This version has no automatic sync. Moving data between devices is a manual encrypted-backup restore.
 - ContextKey does **not** control, audit, or guarantee the behaviour of ChatGPT, Claude, Gemini, or other providers. It only prepares the context you choose to share.
 
-## Development
+## Development and checks
 
-The app is plain HTML, CSS, and JavaScript. There are no build tools or package installs.
+The runtime app is plain HTML, CSS, and JavaScript. It has no production build step or runtime package dependencies. Automated checks run in GitHub Actions with Node.js 22 and Playwright.
 
-For local testing, serve this folder over HTTPS or through `localhost` (for example, a local static server). Opening `index.html` as a `file://` URL may disable the browser encryption APIs and service worker.
+For local testing, serve this folder at `http://127.0.0.1:4173` (or another secure origin). With Node.js 22 installed, run `npm install --no-save --no-package-lock playwright@1.56.1`, then `npx playwright install chromium`. Start a static server in the repository root on port 4173, then run:
+
+```sh
+node --check app.js
+node --test tests/security-guards.test.mjs
+node tests/browser-security.spec.cjs
+```
+
+Opening `index.html` as a `file://` URL may disable browser encryption APIs and service workers. The Pages workflow stages only the public runtime assets; research documents and test files are not deployed.
+
+## License
+
+No open-source license is currently included. The repository is publicly viewable, but you do not have permission to reuse, modify, or redistribute its code unless the owner grants permission. A license will be added only after the provenance and ownership of all included code and assets are confirmed.
 
 ## Product principle
 
 **Share the minimum useful context for the current task.** An entry being saved in the vault does not make it shareable. Sharing is an explicit, separate choice.
 
-See `EXECUTIVE_SUMMARY.md` for the decision brief, `MARKET_RESEARCH.md` for the detailed market assessment, and `PRODUCT_PLAN.md` for the roadmap and validation gates.
+See `EXECUTIVE_SUMMARY.md` for the decision brief, `MARKET_RESEARCH.md` for the market assessment, and `PRODUCT_PLAN.md` for the roadmap and validation gates. These are research and planning documents, not proof of product-market fit.
