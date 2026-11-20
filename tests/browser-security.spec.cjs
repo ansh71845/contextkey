@@ -17,7 +17,7 @@ async function addEntry(page, title, content, shareable) {
   await page.locator('[data-view="library"]').click();
   await page.locator('#item-name').fill(title);
   await page.locator('#item-content').fill(content);
-  if (shareable) await page.locator('#item-shareable').check();
+  if (shareable) await page.locator('.share-toggle').click();
   await page.locator('#item-form').locator('button[type="submit"]').click();
   await page.getByText(title, { exact: true }).waitFor();
 }
