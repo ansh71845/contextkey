@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f4f4ef">
+  <meta name="theme-color" content="#f2efe7">
   <meta name="color-scheme" content="light">
   <meta name="description" content="A private, local-first place to organise useful context and choose exactly what you share with AI assistants.">
   <meta property="og:title" content="ContextKey — your context, on your terms">
-  <meta property="og:description" content="Keep useful context in an encrypted on-device vault. Share only what you choose.">
+  <meta property="og:description" content="Keep useful context in an encrypted on-device vault. Share only what you choose.">\n  <meta name="application-name" content="ContextKey">\n  <meta name="apple-mobile-web-app-capable" content="yes">\n  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self';">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -190,7 +190,7 @@
               <div class="field-group">
                 <label for="item-content">The context</label>
                 <textarea id="item-content" rows="5" maxlength="1400" required placeholder="Write one clear fact, preference, goal or project detail..."></textarea>
-                <span class="field-help">Keep it short. Avoid details you would not want to paste into an AI conversation.</span>
+                <span class="field-help context-field-meta"><span>Keep it specific and useful. Avoid sensitive information.</span><span id="content-count" aria-live="polite">0 / 1,400</span></span>
               </div>
               <label class="share-toggle" for="item-shareable">
                 <input id="item-shareable" type="checkbox">
@@ -204,7 +204,10 @@
             <div class="library-list-panel">
               <div class="list-toolbar">
                 <div><p class="eyebrow">YOUR SAVED ENTRIES</p><div class="list-title-row"><h2>Your library</h2><span id="library-count" class="count-pill">0</span></div></div>
-                <label class="search-wrap" for="search-items"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.3"/><path d="m13 13 4 4"/></svg><input id="search-items" type="search" placeholder="Search entries"></label>
+                <div class="library-controls">
+                  <label class="search-wrap" for="search-items"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.3"/><path d="m13 13 4 4"/></svg><input id="search-items" type="search" placeholder="Search entries" autocomplete="off"></label>
+                  <label class="filter-wrap" for="library-filter"><span>FILTER</span><select id="library-filter"><option value="all">All entries</option><option value="private">Private</option><option value="shareable">Share-ready</option><option value="About">About me</option><option value="Goals">Goals</option><option value="Preferences">Preferences</option><option value="Skills">Skills & knowledge</option><option value="Projects">Projects</option><option value="Rules">Working rules</option></select></label>
+                </div>
               </div>
               <div id="context-list" class="context-list"></div>
               <div id="empty-library" class="empty-state"><span class="empty-icon" aria-hidden="true">＋</span><h3>Your library starts here</h3><p>Add one detail that makes future conversations more useful.</p><button class="button button-secondary" data-go="library" type="button">Create first entry</button></div>
