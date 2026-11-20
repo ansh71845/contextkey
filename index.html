@@ -3,52 +3,98 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#10151d">
-  <meta name="description" content="A local-first wallet for the context you choose to share with AI assistants.">
+  <meta name="theme-color" content="#f4f4ef">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="A private, local-first place to organise useful context and choose exactly what you share with AI assistants.">
+  <meta property="og:title" content="ContextKey — your context, on your terms">
+  <meta property="og:description" content="Keep useful context in an encrypted on-device vault. Share only what you choose.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self';">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
-  <title>ContextKey — your context, your choice</title>
+  <title>ContextKey — your context, on your terms</title>
 </head>
 <body>
-  <div class="ambient ambient-one"></div>
-  <div class="ambient ambient-two"></div>
+  <section id="gate" class="gate-shell" aria-labelledby="gate-story-title">
+    <div class="gate-layout">
+      <div class="gate-story">
+        <a class="brand brand-large" href="./" aria-label="ContextKey home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" focusable="false"><path d="M16 3.5a8 8 0 0 0-4.8 14.4L9 28h14l-2.2-10.1A8 8 0 0 0 16 3.5Zm0 4.4a3.1 3.1 0 1 1 0 6.2 3.1 3.1 0 0 1 0-6.2Z"/></svg>
+          </span>
+          <span>ContextKey</span>
+        </a>
+        <p class="eyebrow">A PRIVATE CONTEXT WORKSPACE</p>
+        <h1 id="gate-story-title">Carry your context.<br><em>Keep control.</em></h1>
+        <p class="gate-intro">A quiet place for the details that make your work yours. Keep them on this device, then choose what belongs in each conversation.</p>
+        <div class="gate-principles" aria-label="ContextKey principles">
+          <div><span class="principle-check" aria-hidden="true">✓</span><span><strong>Stored here</strong><small>Your vault stays in this browser.</small></span></div>
+          <div><span class="principle-check" aria-hidden="true">✓</span><span><strong>Shared by choice</strong><small>Private entries never enter a pack.</small></span></div>
+          <div><span class="principle-check" aria-hidden="true">✓</span><span><strong>Portable backup</strong><small>Move your encrypted vault yourself.</small></span></div>
+        </div>
+        <p class="gate-version">EXPERIMENTAL MVP <span aria-hidden="true">·</span> NO ACCOUNT REQUIRED</p>
+      </div>
 
-  <section id="gate" class="gate-shell" aria-labelledby="gate-title">
-    <div class="gate-card">
-      <div class="brand brand-large"><span class="brand-mark">C</span><span>CONTEXTKEY</span></div>
-      <p class="eyebrow">LOCAL-FIRST AI CONTEXT WALLET</p>
-      <h1 id="gate-title">Your context.<br><span>Your choice.</span></h1>
-      <p class="gate-copy">Keep useful background in one private vault. Choose exactly what goes into each AI context pack.</p>
-      <div id="setup-fields" class="gate-fields" hidden>
-        <label for="new-pass">Create a vault passphrase</label>
-        <input id="new-pass" type="password" minlength="12" autocomplete="new-password" placeholder="Use 12+ characters">
-        <label for="confirm-pass">Confirm passphrase</label>
-        <input id="confirm-pass" type="password" minlength="12" autocomplete="new-password" placeholder="Enter it again">
-        <button id="create-vault" class="button button-primary button-full">Create my encrypted vault <span>→</span></button>
-        <button class="restore-from-gate text-button">Restore an encrypted backup</button>
-        <p class="fine-print">Your passphrase is never sent anywhere. It cannot be recovered. Keep a secure backup.</p>
+      <div class="gate-access">
+        <div class="access-topline"><span class="access-indicator"></span><span>YOUR PRIVATE SPACE</span></div>
+        <h2 id="gate-title">Your context.<br><em>Your choice.</em></h2>
+        <p class="access-copy">This browser is your vault. Your passphrase never leaves this device.</p>
+
+        <div id="setup-fields" class="gate-fields" hidden>
+          <div class="field-group">
+            <label for="new-pass">Create a passphrase</label>
+            <div class="password-field">
+              <input id="new-pass" type="password" minlength="12" autocomplete="new-password" placeholder="At least 12 characters" aria-describedby="passphrase-hint">
+              <button class="password-toggle" type="button" data-password-toggle="new-pass" aria-label="Show passphrase" aria-pressed="false">Show</button>
+            </div>
+            <small id="passphrase-hint" class="field-help">A longer phrase is easier to remember and harder to guess.</small>
+          </div>
+          <div class="field-group">
+            <label for="confirm-pass">Confirm passphrase</label>
+            <div class="password-field">
+              <input id="confirm-pass" type="password" minlength="12" autocomplete="new-password" placeholder="Enter it again">
+              <button class="password-toggle" type="button" data-password-toggle="confirm-pass" aria-label="Show confirmation passphrase" aria-pressed="false">Show</button>
+            </div>
+          </div>
+          <button id="create-vault" class="button button-primary button-full" type="button">Create encrypted vault <span aria-hidden="true">→</span></button>
+          <button class="restore-from-gate text-button" type="button">Restore an encrypted backup</button>
+          <p class="fine-print">There is no password reset. Keep your passphrase and an encrypted backup somewhere safe.</p>
+        </div>
+
+        <div id="unlock-fields" class="gate-fields" hidden>
+          <div class="field-group">
+            <label for="unlock-pass">Vault passphrase</label>
+            <div class="password-field">
+              <input id="unlock-pass" type="password" autocomplete="current-password" placeholder="Enter your passphrase">
+              <button class="password-toggle" type="button" data-password-toggle="unlock-pass" aria-label="Show vault passphrase" aria-pressed="false">Show</button>
+            </div>
+          </div>
+          <button id="unlock-vault" class="button button-primary button-full" type="button">Unlock vault <span aria-hidden="true">→</span></button>
+          <button class="restore-from-gate text-button" type="button">Restore an encrypted backup</button>
+          <button id="reset-vault" class="text-button danger-text" type="button">Forgot passphrase? Reset this device</button>
+          <p class="fine-print">Resetting deletes this device's encrypted vault. It cannot recover a forgotten passphrase.</p>
+        </div>
+
+        <p id="gate-error" class="error-message" role="alert" aria-live="polite"></p>
+        <div class="access-foot"><span class="small-lock" aria-hidden="true">●</span><span>Encrypted in your browser. No cloud vault.</span></div>
       </div>
-      <div id="unlock-fields" class="gate-fields" hidden>
-        <label for="unlock-pass">Unlock your vault</label>
-        <input id="unlock-pass" type="password" autocomplete="current-password" placeholder="Enter your passphrase">
-        <button id="unlock-vault" class="button button-primary button-full">Unlock vault <span>→</span></button>
-        <button class="restore-from-gate text-button">Restore an encrypted backup</button>
-        <button id="reset-vault" class="text-button danger-text">Forgot passphrase? Reset this device vault</button>
-        <p class="fine-print">Resetting permanently deletes the encrypted vault on this device. Restore an exported backup instead, if you have one.</p>
-      </div>
-      <p id="gate-error" class="error-message" role="alert" aria-live="polite"></p>
-      <div class="privacy-strip"><span class="privacy-dot"></span><span>No account · No cloud database · No AI API key</span></div>
     </div>
   </section>
 
   <div id="app" class="app-shell" hidden>
     <header class="topbar">
-      <a class="brand" href="#overview" aria-label="ContextKey home"><span class="brand-mark">C</span><span>CONTEXTKEY</span></a>
+      <a class="brand" href="#view-overview" data-view="overview" aria-label="ContextKey overview">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" focusable="false"><path d="M16 3.5a8 8 0 0 0-4.8 14.4L9 28h14l-2.2-10.1A8 8 0 0 0 16 3.5Zm0 4.4a3.1 3.1 0 1 1 0 6.2 3.1 3.1 0 0 1 0-6.2Z"/></svg>
+        </span>
+        <span>ContextKey</span>
+      </a>
       <div class="topbar-actions">
-        <span class="local-badge"><span class="privacy-dot"></span> ENCRYPTED ON THIS DEVICE</span>
-        <button id="lock-button" class="icon-button" aria-label="Lock vault" title="Lock vault">⌑</button>
+        <span class="device-status"><span class="status-dot" aria-hidden="true"></span><span>Stored on this device</span></span>
+        <button id="lock-button" class="lock-button" type="button" aria-label="Lock vault" title="Lock vault">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3.5" y="8" width="13" height="9" rx="2"/><path d="M6.5 8V6a3.5 3.5 0 0 1 7 0v2"/></svg>
+          <span>Lock vault</span>
+        </button>
       </div>
     </header>
 
@@ -56,115 +102,202 @@
       <aside class="side-panel">
         <p class="nav-label">WORKSPACE</p>
         <nav class="nav-list" aria-label="Main navigation">
-          <button class="nav-item active" data-view="overview"><span class="nav-symbol">⌂</span> Overview</button>
-          <button class="nav-item" data-view="library"><span class="nav-symbol">▤</span> Context library</button>
-          <button class="nav-item" data-view="share"><span class="nav-symbol">⇧</span> Build a context pack</button>
+          <button class="nav-item active" data-view="overview" aria-current="page" type="button">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m2.5 9 7.5-6 7.5 6v8.5h-5v-5h-5v5h-5Z"/></svg><span>Overview</span>
+          </button>
+          <button class="nav-item" data-view="library" type="button">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="2.5" width="14" height="15" rx="2"/><path d="M6.5 6h7M6.5 9.5h7M6.5 13h4"/></svg><span>Context library</span>
+          </button>
+          <button class="nav-item" data-view="share" type="button">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 13.5V2.5m-4 4 4-4 4 4"/><path d="M3 11.5v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/></svg><span>Context pack</span>
+          </button>
         </nav>
         <div class="side-note">
-          <span class="side-note-icon">◈</span>
+          <div class="side-note-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3 20 6v5c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10V6Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg>
+          </div>
           <strong>Private by default</strong>
-          <p>New entries stay private until you explicitly mark them shareable.</p>
+          <p>Saving an entry does not make it shareable. You decide both steps.</p>
         </div>
-        <div class="side-footer">VERSION 0.1 · OFFLINE-READY</div>
+        <div class="side-footer">CONTEXTKEY <span>·</span> EARLY ACCESS</div>
       </aside>
 
       <section class="content-panel">
         <section id="view-overview" class="view active-view">
           <div class="page-heading">
             <div>
-              <p class="eyebrow">YOUR PERSONAL CONTEXT LAYER</p>
-              <h1>Keep the important stuff.<br><span>Leave the rest private.</span></h1>
-              <p class="subtitle">A small, portable source of truth for how you work, learn, and think — independent of any one AI provider.</p>
+              <p class="eyebrow">YOUR WORKSPACE</p>
+              <h1>A clear picture of<br><em>what you keep.</em></h1>
+              <p class="subtitle">Keep the details that help you work, learn and think. Bring only the relevant ones into a conversation.</p>
             </div>
-            <div class="heading-chip"><span class="chip-orb"></span> YOUR DATA, YOUR DEVICE</div>
+            <div class="heading-note"><span class="status-dot" aria-hidden="true"></span> Your vault is local</div>
           </div>
 
-          <div class="stats-grid">
-            <article class="stat-card"><span class="stat-label">SAVED CONTEXT</span><strong id="stat-total">0</strong><span class="stat-foot">items in your vault</span></article>
-            <article class="stat-card"><span class="stat-label">PRIVATE</span><strong id="stat-private">0</strong><span class="stat-foot">never included by default</span></article>
-            <article class="stat-card"><span class="stat-label">SHARE-READY</span><strong id="stat-share">0</strong><span class="stat-foot">you approved for export</span></article>
+          <div class="stats-grid" aria-label="Vault summary">
+            <article class="stat-card"><span class="stat-label">IN YOUR VAULT</span><strong id="stat-total">0</strong><span class="stat-foot">saved entries</span></article>
+            <article class="stat-card"><span class="stat-label">KEPT PRIVATE</span><strong id="stat-private">0</strong><span class="stat-foot">not approved for sharing</span></article>
+            <article class="stat-card"><span class="stat-label">SHARE-READY</span><strong id="stat-share">0</strong><span class="stat-foot">eligible for a pack</span></article>
           </div>
 
-          <div class="section-heading"><div><p class="eyebrow">START HERE</p><h2>Make your context useful</h2></div><span class="section-index">01 / 03</span></div>
+          <div class="section-heading"><div><p class="eyebrow">A SIMPLE WORKFLOW</p><h2>What would you like to do?</h2></div><span class="section-index">01 <i>/</i> 03</span></div>
           <div class="action-grid">
-            <button class="action-card" data-go="library"><span class="action-icon">＋</span><span class="action-title">Add context</span><span class="action-copy">Save a preference, goal, project detail, or working rule.</span><span class="action-arrow">↗</span></button>
-            <button class="action-card" data-go="share"><span class="action-icon">⇧</span><span class="action-title">Build a context pack</span><span class="action-copy">Select the few details an assistant needs for one task.</span><span class="action-arrow">↗</span></button>
-            <button class="action-card" id="backup-button"><span class="action-icon">⬇</span><span class="action-title">Back up your vault</span><span class="action-copy">Download an encrypted copy before changing devices.</span><span class="action-arrow">↗</span></button>
+            <button class="action-card" data-go="library" type="button">
+              <span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+              <span class="action-title">Add useful context</span><span class="action-copy">Save a preference, project detail or working rule.</span><span class="action-arrow" aria-hidden="true">↗</span>
+            </button>
+            <button class="action-card" data-go="share" type="button">
+              <span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m-4 4 4-4 4 4"/><path d="M5 13v6h14v-6"/></svg></span>
+              <span class="action-title">Prepare a context pack</span><span class="action-copy">Choose the few details an assistant needs for this task.</span><span class="action-arrow" aria-hidden="true">↗</span>
+            </button>
+            <button class="action-card" id="backup-button" type="button">
+              <span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v11m-4-4 4 4 4-4"/><path d="M5 17v3h14v-3"/></svg></span>
+              <span class="action-title">Back up your vault</span><span class="action-copy">Keep an encrypted copy before changing devices.</span><span class="action-arrow" aria-hidden="true">↗</span>
+            </button>
           </div>
 
           <div class="principle-card">
-            <div class="principle-symbol">✳</div>
-            <div><p class="eyebrow">THE CONTEXTKEY RULE</p><h3>Useful context is not the same as all your data.</h3><p>Share the minimum information needed for the current task. Keep sensitive details out of AI chats unless you have a clear reason and trust the service.</p></div>
+            <div class="principle-symbol" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8m0-12.8L5.6 18.4"/></svg>
+            </div>
+            <div><p class="eyebrow">THE CONTEXTKEY PRINCIPLE</p><h3>Useful context is not the same as all your data.</h3><p>Keep private notes separate. Review every context pack before sharing it with an AI service.</p></div>
           </div>
-          <p class="small-note">ContextKey does not connect to AI providers or enforce their actions. It prepares clear, user-selected context for you to share manually.</p>
+          <p class="small-note">ContextKey prepares the text you choose to share. It does not connect to AI providers or control how they handle information.</p>
         </section>
 
         <section id="view-library" class="view" hidden>
-          <div class="page-heading compact-heading"><div><p class="eyebrow">YOUR PRIVATE SOURCE OF TRUTH</p><h1>Context library</h1><p class="subtitle">Save information that improves future conversations. Keep each entry specific and easy to update.</p></div></div>
+          <div class="page-heading compact-heading">
+            <div><p class="eyebrow">YOUR PERSONAL REFERENCE</p><h1>Context library</h1><p class="subtitle">Save one useful idea per entry. Keep it factual, specific and easy to update.</p></div>
+          </div>
           <div class="library-layout">
             <form id="item-form" class="form-card">
-              <div class="card-topline"><span class="eyebrow">NEW ENTRY</span><span id="form-mode" class="status-pill">CREATE</span></div>
-              <h2 id="form-title">Add useful context</h2>
-              <label for="item-section">Category</label>
-              <select id="item-section" required>
-                <option value="About">About me</option>
-                <option value="Goals">Goals</option>
-                <option value="Preferences">Preferences</option>
-                <option value="Skills">Skills & knowledge</option>
-                <option value="Projects">Projects</option>
-                <option value="Rules">Working rules</option>
-              </select>
-              <label for="item-name">Short title</label>
-              <input id="item-name" maxlength="70" required placeholder="e.g. How I prefer explanations">
-              <label for="item-content">Context</label>
-              <textarea id="item-content" rows="5" maxlength="1400" required placeholder="Write one clear fact, preference, goal, or project detail..."></textarea>
-              <label class="share-toggle"><input id="item-shareable" type="checkbox"><span class="toggle-visual"></span><span><strong>Allow this entry in context packs</strong><small>Off by default. You can still choose it before exporting.</small></span></label>
-              <div class="form-actions"><button id="save-item" class="button button-primary" type="submit">Save entry <span>→</span></button><button id="cancel-edit" class="button button-quiet" type="button" hidden>Cancel</button></div>
-              <p class="form-hint">Do not save passwords, account numbers, private keys, or sensitive personal records.</p>
+              <div class="card-topline"><span class="eyebrow">ENTRY EDITOR</span><span id="form-mode" class="status-pill">NEW</span></div>
+              <div><h2 id="form-title">Add useful context</h2><p class="card-description">Start with a detail that would otherwise need repeating.</p></div>
+              <div class="field-group">
+                <label for="item-section">Category</label>
+                <select id="item-section" required>
+                  <option value="About">About me</option>
+                  <option value="Goals">Goals</option>
+                  <option value="Preferences">Preferences</option>
+                  <option value="Skills">Skills & knowledge</option>
+                  <option value="Projects">Projects</option>
+                  <option value="Rules">Working rules</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="item-name">Title</label>
+                <input id="item-name" maxlength="70" required autocomplete="off" placeholder="e.g. How I prefer explanations">
+              </div>
+              <div class="field-group">
+                <label for="item-content">The context</label>
+                <textarea id="item-content" rows="5" maxlength="1400" required placeholder="Write one clear fact, preference, goal or project detail..."></textarea>
+                <span class="field-help">Keep it short. Avoid details you would not want to paste into an AI conversation.</span>
+              </div>
+              <label class="share-toggle" for="item-shareable">
+                <input id="item-shareable" type="checkbox">
+                <span class="toggle-visual" aria-hidden="true"></span>
+                <span><strong>Allow in context packs</strong><small>Off by default. You still select it before building a pack.</small></span>
+              </label>
+              <div class="form-actions"><button id="save-item" class="button button-primary" type="submit">Save entry <span aria-hidden="true">→</span></button><button id="cancel-edit" class="button button-secondary" type="button" hidden>Cancel edit</button></div>
+              <p class="form-hint">Never store passwords, recovery codes, private keys, bank details or highly sensitive records.</p>
             </form>
+
             <div class="library-list-panel">
-              <div class="list-toolbar"><div><p class="eyebrow">SAVED ENTRIES</p><h2>Your context</h2></div><div class="search-wrap"><span>⌕</span><input id="search-items" type="search" placeholder="Search entries" aria-label="Search context entries"></div></div>
+              <div class="list-toolbar">
+                <div><p class="eyebrow">YOUR SAVED ENTRIES</p><div class="list-title-row"><h2>Your library</h2><span id="library-count" class="count-pill">0</span></div></div>
+                <label class="search-wrap" for="search-items"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.3"/><path d="m13 13 4 4"/></svg><input id="search-items" type="search" placeholder="Search entries"></label>
+              </div>
               <div id="context-list" class="context-list"></div>
-              <div id="empty-library" class="empty-state"><span class="empty-icon">◌</span><h3>Your library is empty</h3><p>Add one useful detail. Keep it short, accurate, and relevant to future work.</p><button class="button button-secondary" data-go="library">Create first entry</button></div>
+              <div id="empty-library" class="empty-state"><span class="empty-icon" aria-hidden="true">＋</span><h3>Your library starts here</h3><p>Add one detail that makes future conversations more useful.</p><button class="button button-secondary" data-go="library" type="button">Create first entry</button></div>
             </div>
           </div>
         </section>
 
         <section id="view-share" class="view" hidden>
-          <div class="page-heading compact-heading"><div><p class="eyebrow">SELECTIVE SHARING</p><h1>Build a context pack</h1><p class="subtitle">Choose a task, select only relevant entries, preview the exact text, then copy or download it.</p></div></div>
+          <div class="page-heading compact-heading">
+            <div><p class="eyebrow">INTENTIONAL SHARING</p><h1>Build a context pack</h1><p class="subtitle">Choose a purpose, select the approved details you need, then review the exact text before you copy or download it.</p></div>
+          </div>
           <div class="share-layout">
             <div class="select-panel">
-              <div class="card-topline"><span class="eyebrow">01 · PURPOSE</span><span class="status-pill">MANUAL SHARE</span></div>
-              <label for="pack-purpose">What are you using an assistant for?</label>
-              <select id="pack-purpose">
-                <option value="general">General assistant</option>
-                <option value="study">Learning / study</option>
-                <option value="coding">Coding / building</option>
-                <option value="writing">Writing / communication</option>
-                <option value="planning">Planning / decisions</option>
-              </select>
-              <div class="card-topline context-picker-heading"><span class="eyebrow">02 · CHOOSE CONTEXT</span><button id="select-shareable" class="mini-button">Select share-ready</button></div>
+              <div class="card-topline"><span class="eyebrow">01 / SET THE PURPOSE</span><span class="status-pill">NO AUTO-SHARING</span></div>
+              <div class="field-group purpose-field">
+                <label for="pack-purpose">What is this pack for?</label>
+                <select id="pack-purpose">
+                  <option value="general">General assistant</option>
+                  <option value="study">Learning / study</option>
+                  <option value="coding">Coding / building</option>
+                  <option value="writing">Writing / communication</option>
+                  <option value="planning">Planning / decisions</option>
+                </select>
+              </div>
+              <div class="picker-heading"><div><p class="eyebrow">02 / CHOOSE ENTRIES</p><h2>Share-ready context</h2></div><span id="pack-selected-count" class="count-pill">0 selected</span></div>
+              <p class="picker-help">Only entries you approved in the library appear here. Nothing is selected automatically.</p>
+              <div class="picker-actions"><button id="select-suggested" class="mini-button" type="button">Add suggested</button><button id="clear-selection" class="mini-button quiet-mini" type="button">Clear selection</button></div>
               <div id="pack-items" class="pack-items"></div>
-              <div id="empty-pack" class="empty-state compact-empty"><span class="empty-icon">▧</span><h3>Nothing to share yet</h3><p>Add context and mark only suitable entries as shareable.</p><button class="button button-secondary" data-go="library">Open context library</button></div>
+              <div id="empty-pack" class="empty-state compact-empty"><span class="empty-icon" aria-hidden="true">↗</span><h3>No share-ready entries</h3><p>Approve suitable entries in your library, then return here to select them.</p><button class="button button-secondary" data-go="library" type="button">Open context library</button></div>
             </div>
+
             <div class="preview-panel">
-              <div class="preview-header"><div><p class="eyebrow">03 · REVIEW BEFORE SHARING</p><h2>Pack preview</h2></div><span class="preview-lock">◈ PRIVATE UNTIL COPIED</span></div>
-              <label for="pack-preview">Exact text that will be shared</label>
-              <textarea id="pack-preview" class="pack-preview" spellcheck="false" readonly placeholder="Select entries on the left to create a preview..."></textarea>
-              <div class="preview-actions"><button id="copy-pack" class="button button-primary" disabled>Copy context pack <span>↗</span></button><button id="download-pack" class="button button-secondary" disabled>Download .md</button></div>
-              <p id="pack-feedback" class="feedback-line" aria-live="polite"></p>
-              <div class="target-note"><strong>Works with different assistants.</strong><p>Paste the pack into a new chat or an assistant's custom-instructions area. The receiving service's own privacy, age, and usage rules still apply.</p></div>
+              <div class="preview-header"><div><p class="eyebrow">03 / REVIEW BEFORE SHARING</p><h2>Pack preview</h2></div><span class="preview-state">PRIVATE UNTIL YOU EXPORT</span></div>
+              <label for="pack-preview">This is the exact text that will leave ContextKey</label>
+              <textarea id="pack-preview" class="pack-preview" spellcheck="false" readonly placeholder="Select one or more entries to build your preview..."></textarea>
+              <div class="preview-meta"><span id="pack-feedback" role="status" aria-live="polite">Select approved entries to begin.</span><span id="pack-length">0 characters</span></div>
+              <div class="preview-actions"><button id="copy-pack" class="button button-primary" type="button" disabled>Copy context pack <span aria-hidden="true">↗</span></button><button id="download-pack" class="button button-secondary" type="button" disabled>Download .md</button></div>
+              <div class="target-note"><strong>Review, then share manually.</strong><p>Paste the pack into a conversation or custom-instructions area. The receiving service's own privacy and usage rules still apply.</p></div>
             </div>
           </div>
         </section>
 
-        <footer class="app-footer"><span>CONTEXTKEY · EXPERIMENTAL MVP</span><span><button id="export-backup-footer" class="footer-button">Encrypted backup</button><button id="restore-backup-footer" class="footer-button">Restore backup</button><button id="wipe-vault" class="footer-button danger-text">Delete vault data</button></span></footer>
+        <footer class="app-footer">
+          <span>CONTEXTKEY <span aria-hidden="true">·</span> EXPERIMENTAL MVP</span>
+          <div class="footer-actions">
+            <button id="export-backup-footer" class="footer-button" type="button">Encrypted backup</button>
+            <button id="restore-backup-footer" class="footer-button" type="button">Restore backup</button>
+            <button id="wipe-vault" class="footer-button danger-text" type="button">Delete vault data</button>
+          </div>
+        </footer>
       </section>
     </main>
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <input id="restore-file" type="file" accept=".ckvault,application/json" hidden>
+
+  <dialog id="confirm-dialog" class="modal" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <div class="modal-card">
+      <p class="eyebrow">PLEASE CONFIRM</p>
+      <h2 id="confirm-title">Confirm this action</h2>
+      <p id="confirm-message" class="modal-copy"></p>
+      <div class="modal-actions"><button id="confirm-cancel" class="button button-secondary" type="button">Cancel</button><button id="confirm-accept" class="button button-danger" type="button">Continue</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="restore-dialog" class="modal" aria-labelledby="restore-title" aria-describedby="restore-copy">
+    <div class="modal-card restore-card">
+      <button id="close-restore" class="modal-close" type="button" aria-label="Close restore dialog">×</button>
+      <p class="eyebrow">ENCRYPTED BACKUP</p>
+      <h2 id="restore-title">Verify your backup</h2>
+      <p id="restore-copy" class="modal-copy">Enter the passphrase used when this backup was created. Your existing vault will not be changed during verification.</p>
+      <div id="restore-verify-step">
+        <div class="field-group">
+          <label for="restore-passphrase">Backup passphrase</label>
+          <div class="password-field">
+            <input id="restore-passphrase" type="password" autocomplete="current-password" placeholder="Enter backup passphrase">
+            <button class="password-toggle" type="button" data-password-toggle="restore-passphrase" aria-label="Show backup passphrase" aria-pressed="false">Show</button>
+          </div>
+        </div>
+        <p id="restore-error" class="error-message" role="alert" aria-live="polite"></p>
+        <button id="verify-backup" class="button button-primary button-full" type="button">Verify backup <span aria-hidden="true">→</span></button>
+      </div>
+      <div id="restore-confirm-step" hidden>
+        <div class="verified-panel"><span class="verified-icon" aria-hidden="true">✓</span><div><strong>Backup verified</strong><span id="restore-summary">This backup can be opened.</span></div></div>
+        <p class="restore-warning">Restoring replaces the encrypted vault currently saved in this browser. Export a backup of your current vault first if you need to keep it.</p>
+        <p id="restore-confirm-error" class="error-message" role="alert" aria-live="polite"></p>
+        <button id="confirm-restore" class="button button-danger button-full" type="button">Replace current vault</button>
+      </div>
+      <div class="modal-bottom"><button id="cancel-restore" class="text-button" type="button">Cancel restore</button></div>
+    </div>
+  </dialog>
+
   <script src="app.js" defer></script>
 </body>
 </html>

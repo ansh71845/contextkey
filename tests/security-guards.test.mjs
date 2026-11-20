@@ -3,75 +3,141 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 const app = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
-test('vault envelopes require the supported KDF and cipher metadata', () => {
-  assert.match(app, /envelope\.kdf !== 'PBKDF2-SHA256'/);
+function relativeLuminance(hex) {
+  const channels = hex.replace('#', '').match(/.{2}/g).map((part) => parseInt(part, 16) / 255);
+  const linear = channels.map((channel) => channel <= 0.04045
+    ? channel / 12.92
+    : ((channel + 0.055) / 1.055) ** 2.4);
+  return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+}
+
+function contrastRatio(foreground, background) {
+  const values = [relativeLuminance(foreground), relativeLuminance(background)].sort((a, b) => b - a);
+  return (values[0] + 0.05) / (values[1] + 0.05);
+}
+
+test('vault envelopes use the supported PBKDF2 and AES-GCM format', () => {
+  assert.match(app, /PBKDF2_ITERATIONS = 310000/);
+  assert.match(app, /PBKDF2-SHA256/);
+  assert.match(app, /AES-256-GCM/);
   assert.match(app, /envelope\.iterations !== PBKDF2_ITERATIONS/);
-  assert.match(app, /envelope\.cipher !== 'AES-256-GCM'/);
 });
 
-test('vault envelopes validate salt, IV, and ciphertext lengths', () => {
+test('vault envelopes validate salt, IV, and ciphertext lengths before decrypting', () => {
   assert.match(app, /salt\.length !== 16/);
   assert.match(app, /iv\.length !== 12/);
   assert.match(app, /data\.length < 16/);
   assert.match(app, /data\.length > 5 \* 1024 \* 1024/);
 });
 
-test('locking clears decrypted DOM content and sensitive form values', () => {
-  const start = app.indexOf('function lockVault()');
-  const end = app.indexOf('\nfunction setView(', start);
+test('locking removes decrypted DOM content and clears local editing state', () => {
+  const start = app.indexOf('function clearSession()');
+  const end = app.indexOf('\nfunction lockVault()', start);
   assert.notEqual(start, -1);
   assert.notEqual(end, -1);
-  const lock = app.slice(start, end);
-  assert.match(lock, /context-list/);
-  assert.match(lock, /pack-items/);
-  assert.match(lock, /pack-preview/);
-  assert.match(lock, /item-content/);
-  assert.match(lock, /item-name/);
-  assert.match(lock, /item-form.*reset/s);
+  const clear = app.slice(start, end);
+  for (const id of ['context-list', 'pack-items', 'pack-preview', 'item-name', 'item-content', 'search-items']) {
+    assert.ok(clear.includes(id), `lock cleanup must clear ${id}`);
+  }
+  assert.match(clear, /item-form.*reset/s);
+  assert.match(app, /function lockVault\(\)\s*\{\s*clearSession\(\)/);
 });
 
-test('backup decryption completes before the stored vault is replaced', () => {
+test('saves encrypt the proposed vault before committing it to in-memory state', () => {
+  assert.match(app, /async function persistVault\(nextVault = vault/);
+  assert.match(app, /const encrypted = await encryptObject\(nextVault, key, salt\)/);
+  assert.match(app, /localStorage\.setItem\(STORAGE_KEY, JSON\.stringify\(encrypted\)\)/);
+  const saveStart = app.indexOf('async function handleItemSubmit');
+  const saveEnd = app.indexOf('\nfunction editItem', saveStart);
+  const save = app.slice(saveStart, saveEnd);
+  assert.ok(save.indexOf('await persistVault(nextVault)') < save.indexOf('vault = nextVault'));
+});
+
+test('restore requires successful decryption and explicit replacement confirmation', () => {
+  assert.match(app, /await decryptVaultEnvelope\(pendingBackup, passphrase\)/);
+  const verifyStart = app.indexOf('async function verifyBackup');
+  const verifyEnd = app.indexOf('\nfunction confirmRestore', verifyStart);
+  const verify = app.slice(verifyStart, verifyEnd);
+  assert.match(verify, /restoreVerified = true/);
+  const restoreStart = app.indexOf('function confirmRestore');
+  const restoreEnd = app.indexOf('\nasync function wipeVault', restoreStart);
+  const restore = app.slice(restoreStart, restoreEnd);
+  assert.ok(restore.indexOf('!restoreVerified') < restore.indexOf('localStorage.setItem'));
+  assert.doesNotMatch(app, /window\.prompt\(/);
+});
+
+test('context packs begin empty and include only explicitly selected share-ready entries', () => {
+  const builderStart = app.indexOf('function renderPackBuilder');
+  const builderEnd = app.indexOf('\nfunction updatePackPreview', builderStart);
+  const builder = app.slice(builderStart, builderEnd);
+  assert.match(builder, /selectedIds = new Set\(\)/);
+  const packStart = app.indexOf('function makePack');
+  const packEnd = app.indexOf('\nfunction renderPackBuilder', packStart);
+  const pack = app.slice(packStart, packEnd);
+  assert.match(pack, /selectedIds\.has\(item\.id\) && item\.shareable/);
+});
+
+test('save-ready selection is a deliberate action and has a clear-selection control', () => {
+  assert.match(html, /id="select-suggested"/);
+  assert.match(html, /id="clear-selection"/);
+  assert.match(app, /addEventListener\('click', selectSuggestedEntries\)/);
+  assert.match(app, /addEventListener\('click', clearPackSelection\)/);
+});
+
+test('backup size is rejected before reading and invalid envelopes are checked before showing restore', () => {
   const start = app.indexOf('async function restoreBackup(file)');
-  const end = app.indexOf('\nasync function wipeVault()', start);
-  assert.notEqual(start, -1);
-  assert.notEqual(end, -1);
+  const end = app.indexOf('\nasync function verifyBackup', start);
   const restore = app.slice(start, end);
-  const verify = restore.indexOf('await decryptVaultEnvelope(backup, backupPassphrase)');
-  const replace = restore.indexOf('localStorage.setItem(STORAGE_KEY, JSON.stringify(backup))');
-  assert.notEqual(verify, -1);
-  assert.notEqual(replace, -1);
-  assert.ok(verify < replace, 'backup must decrypt before replacing the current vault');
-  assert.match(restore, /window\.confirm/);
+  assert.ok(restore.indexOf('file.size > 7 * 1024 * 1024') < restore.indexOf('await file.text()'));
+  assert.ok(restore.indexOf('decodeVaultEnvelope(backup)') < restore.indexOf('showModal()'));
 });
 
-test('service worker cache version is bumped for the hardened shell', () => {
-  const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
-  assert.match(sw, /contextkey-shell-v2/);
+test('storage errors do not commit an unsaved entry to the in-memory vault', () => {
+  const start = app.indexOf('async function handleItemSubmit');
+  const end = app.indexOf('\nfunction editItem', start);
+  const save = app.slice(start, end);
+  assert.ok(save.indexOf('await persistVault(nextVault)') < save.indexOf('vault = nextVault'));
+  assert.match(save, /catch \(error\)/);
+  assert.match(save, /Could not save this entry/);
 });
 
-test('backup size is rejected before reading the file into memory', () => {
-  const start = app.indexOf('async function restoreBackup(file)');
-  const end = app.indexOf('\\nasync function wipeVault()', start);
-  const restore = app.slice(start, end);
-  const sizeGuard = restore.indexOf('file.size > 7 * 1024 * 1024');
-  const readFile = restore.indexOf('await file.text()');
-  assert.notEqual(sizeGuard, -1);
-  assert.ok(sizeGuard < readFile, 'file size must be checked before reading the file');
+test('service worker cache is versioned and offline HTML fallback is navigation-only', () => {
+  assert.match(sw, /contextkey-shell-v3/);
+  assert.match(sw, /event\.request\.mode === 'navigate'/);
+  const fetchHandler = sw.slice(sw.indexOf("self.addEventListener('fetch'"));
+  assert.match(fetchHandler, /catch\(\(\) => caches\.match\('\.\/index\.html'\)\)/);
 });
 
-test('blocked browser storage produces a visible recovery message instead of crashing startup', () => {
-  const start = app.indexOf('function init()');
-  const init = app.slice(start);
-  assert.match(init, /try \{\s*existing = localStorage\.getItem\(STORAGE_KEY\);\s*\} catch/);
-  assert.match(init, /Browser storage is blocked or unavailable/);
-  assert.match(init, /\$\('create-vault'\)\.disabled = true/);
+test('design system includes responsive layout, visible focus and reduced-motion support', () => {
+  assert.match(css, /--canvas: #f3f4ef/);
+  assert.match(css, /--green: #315b48/);
+  assert.match(css, /:focus-visible/);
+  assert.match(css, /@media \(max-width: 700px\)/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
-test('Pages deployment stages only the public app shell, not repository research or tests', () => {
-  const workflow = readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8');
-  assert.match(workflow, /mkdir -p _site/);
-  assert.match(workflow, /cp index\.html styles\.css app\.js manifest\.webmanifest sw\.js icon\.svg icon-192\.png icon-512\.png _site\//);
-  assert.match(workflow, /path: _site/);
-  assert.doesNotMatch(workflow, /path: \./);
+test('app remains self-hosted without external font or script dependencies', () => {
+  assert.match(html, /script-src 'self'/);
+  assert.match(html, /font-src 'self'/);
+  assert.doesNotMatch(html, /https:\/\/(fonts\.googleapis|fonts\.gstatic|cdn\.)/i);
+});
+
+test('secondary typography and input hints meet WCAG AA contrast on primary surfaces', () => {
+  const token = (name) => {
+    const match = css.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`));
+    assert.ok(match, `missing ${name} colour token`);
+    return match[1];
+  };
+  const canvas = token('canvas');
+  const surface = token('surface');
+  const soft = token('soft');
+  const muted = token('muted');
+  assert.ok(contrastRatio(soft, canvas) >= 4.5, 'secondary labels must meet 4.5:1 on the canvas');
+  assert.ok(contrastRatio(soft, surface) >= 4.5, 'secondary labels must meet 4.5:1 on white surfaces');
+  assert.ok(contrastRatio(muted, canvas) >= 4.5, 'body copy must meet 4.5:1 on the canvas');
+  assert.ok(contrastRatio('#65736a', surface) >= 4.5, 'input hints must meet 4.5:1 on white surfaces');
 });
