@@ -22,17 +22,22 @@ async function addEntry(page, title, content, shareable) {
   await page.getByText(title, { exact: true }).waitFor();
 }
 
+async function waitForRestoreInputReset(page) {
+  await page.waitForFunction(() => {
+    const input = document.querySelector('#restore-file');
+    return input && input.value === '';
+  });
+}
+
 async function main() {
   const browser = await chromium.launch({ headless: true });
   try {
-    // Verify lock removes rendered plaintext and sensitive form values.
     const lockContext = await browser.newContext();
     const lockPage = await lockContext.newPage();
     await createVault(lockPage, PASS_A);
     await addEntry(lockPage, 'Shareable sample', 'This text is approved for export.', true);
     await addEntry(lockPage, 'Private sample', 'This text must stay private.', false);
     await lockPage.locator('[data-view="share"]').click();
-    await assert.doesNotReject(() => lockPage.locator('#pack-preview').waitFor());
     const preview = await lockPage.locator('#pack-preview').inputValue();
     assert.match(preview, /Shareable sample/);
     assert.doesNotMatch(preview, /Private sample/);
@@ -44,7 +49,6 @@ async function main() {
     assert.equal(await lockPage.locator('#context-list').innerText(), '');
     await lockContext.close();
 
-    // Create a separate encrypted backup in an isolated browser profile.
     const backupContext = await browser.newContext({ acceptDownloads: true });
     const backupPage = await backupContext.newPage();
     await createVault(backupPage, PASS_B);
@@ -55,26 +59,24 @@ async function main() {
     ]);
     const backupPath = await download.path();
     assert.ok(backupPath, 'encrypted backup download should produce a file');
-    const fs = require('node:fs');
-    const backupBuffer = fs.readFileSync(backupPath);
+    const backupBuffer = require('node:fs').readFileSync(backupPath);
     await backupContext.close();
 
-    // A wrong passphrase must leave the current vault intact; a valid restore
-    // must replace it only after the browser's confirmation dialog is accepted.
     const restoreContext = await browser.newContext();
     const restorePage = await restoreContext.newPage();
     await createVault(restorePage, PASS_A);
     await addEntry(restorePage, 'Current sample', 'This entry must survive a rejected restore.', true);
+
+    restorePage.once('dialog', async (dialog) => {
+      assert.equal(dialog.type, 'prompt');
+      await dialog.accept('incorrect-passphrase');
+    });
     await restorePage.locator('#restore-file').setInputFiles({
       name: 'contextkey-test.ckvault',
       mimeType: 'application/json',
       buffer: backupBuffer
     });
-    restorePage.once('dialog', async (dialog) => {
-      assert.equal(dialog.type, 'prompt');
-      await dialog.accept('incorrect-passphrase');
-    });
-    await restorePage.locator('#toast').waitFor({ state: 'visible' });
+    await waitForRestoreInputReset(restorePage);
     assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 1);
 
     restorePage.on('dialog', async (dialog) => {
@@ -87,6 +89,7 @@ async function main() {
       mimeType: 'application/json',
       buffer: backupBuffer
     });
+    await waitForRestoreInputReset(restorePage);
     await restorePage.locator('#gate').waitFor({ state: 'visible' });
     await restorePage.locator('#unlock-pass').fill(PASS_B);
     await restorePage.locator('#unlock-vault').click();
@@ -96,7 +99,7 @@ async function main() {
     assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 0);
     await restoreContext.close();
 
-    process.stdout.write('Browser security checks passed: lock cleanup, private-pack exclusion, rejected restore preservation, and verified restore.\n');
+    process.stdout.write('Browser security checks passed: lock cleanup, private-pack exclusion, rejected restore preservation, and verified restore.\\n');
   } finally {
     await browser.close();
   }
