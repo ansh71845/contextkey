@@ -69,7 +69,7 @@ async function main() {
     await addEntry(restorePage, 'Current sample', 'This entry must survive a rejected restore.', true);
 
     restorePage.once('dialog', async (dialog) => {
-      assert.equal(dialog.type, 'prompt');
+      assert.equal(dialog.type(), 'prompt');
       await dialog.accept('incorrect-passphrase');
     });
     await restorePage.locator('#restore-file').setInputFiles({
