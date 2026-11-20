@@ -32,7 +32,8 @@ async function waitForRestoreInputReset(page) {
 async function main() {
   const browser = await chromium.launch({ headless: true });
   try {
-    const lockContext = await browser.newContext();
+    const mobileContext = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
+    const lockContext = await browser.newContext(mobileContext);
     const lockPage = await lockContext.newPage();
     await createVault(lockPage, PASS_A);
     await addEntry(lockPage, 'Shareable sample', 'This text is approved for export.', true);
@@ -49,7 +50,7 @@ async function main() {
     assert.equal(await lockPage.locator('#context-list').innerText(), '');
     await lockContext.close();
 
-    const backupContext = await browser.newContext({ acceptDownloads: true });
+    const backupContext = await browser.newContext({ ...mobileContext, acceptDownloads: true });
     const backupPage = await backupContext.newPage();
     await createVault(backupPage, PASS_B);
     await addEntry(backupPage, 'Restored sample', 'Only the verified backup should replace the vault.', true);
@@ -63,7 +64,7 @@ async function main() {
     const backupBuffer = require('node:fs').readFileSync(backupPath);
     await backupContext.close();
 
-    const restoreContext = await browser.newContext();
+    const restoreContext = await browser.newContext(mobileContext);
     const restorePage = await restoreContext.newPage();
     await createVault(restorePage, PASS_A);
     await addEntry(restorePage, 'Current sample', 'This entry must survive a rejected restore.', true);
