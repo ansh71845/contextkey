@@ -128,9 +128,9 @@ test('app remains self-hosted without external font or script dependencies', () 
 
 test('secondary typography and input hints meet WCAG AA contrast on primary surfaces', () => {
   const token = (name) => {
-    const match = css.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`));
-    assert.ok(match, `missing ${name} colour token`);
-    return match[1];
+    const matches = [...css.matchAll(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`, 'g'))];
+    assert.ok(matches.length, `missing ${name} colour token`);
+    return matches[matches.length - 1][1];
   };
   const canvas = token('canvas');
   const surface = token('surface');
@@ -140,4 +140,18 @@ test('secondary typography and input hints meet WCAG AA contrast on primary surf
   assert.ok(contrastRatio(soft, surface) >= 4.5, 'secondary labels must meet 4.5:1 on white surfaces');
   assert.ok(contrastRatio(muted, canvas) >= 4.5, 'body copy must meet 4.5:1 on the canvas');
   assert.ok(contrastRatio('#65736a', surface) >= 4.5, 'input hints must meet 4.5:1 on white surfaces');
+});
+
+test('library filters distinguish private, share-ready, and category entries', () => {
+  assert.match(html, /id="library-filter"/);
+  assert.match(app, /const matchesFilter = filter === 'all'/);
+  assert.match(app, /filter === 'private' && !item\.shareable/);
+  assert.match(app, /filter === 'shareable' && item\.shareable/);
+});
+
+test('entry editor exposes a live character count and imported vaults have a bounded entry count', () => {
+  assert.match(html, /id="content-count"/);
+  assert.match(app, /function updateContentCount\(\)/);
+  assert.match(app, /value\.items\.length > 500/);
+  assert.match(app, /more than the supported 500 entries/);
 });
