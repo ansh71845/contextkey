@@ -81,8 +81,8 @@ async function main() {
     assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 1);
 
     restorePage.on('dialog', async (dialog) => {
-      if (dialog.type === 'prompt') await dialog.accept(PASS_B);
-      else if (dialog.type === 'confirm') await dialog.accept();
+      if (dialog.type() === 'prompt') await dialog.accept(PASS_B);
+      else if (dialog.type() === 'confirm') await dialog.accept();
       else await dialog.dismiss();
     });
     await restorePage.locator('#restore-file').setInputFiles({
