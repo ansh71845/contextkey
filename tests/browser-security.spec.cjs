@@ -1,5 +1,6 @@
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 
 const BASE_URL = 'http://127.0.0.1:4173/';
 const PASS_A = 'contextkey-test-passphrase-A-2026';
@@ -17,81 +18,87 @@ async function addEntry(page, title, content, shareable) {
   await page.locator('[data-view="library"]').click();
   await page.locator('#item-name').fill(title);
   await page.locator('#item-content').fill(content);
-  if (shareable) await page.locator('.share-toggle').click();
+  if (shareable) await page.locator('#item-shareable').check();
   await page.locator('#item-form').locator('button[type="submit"]').click();
   await page.getByText(title, { exact: true }).waitFor();
-}
-
-async function waitForRestoreInputReset(page) {
-  await page.waitForFunction(() => {
-    const input = document.querySelector('#restore-file');
-    return input && input.value === '';
-  });
 }
 
 async function main() {
   const browser = await chromium.launch({ headless: true });
   try {
-    const mobileContext = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
-    const lockContext = await browser.newContext(mobileContext);
-    const lockPage = await lockContext.newPage();
-    await createVault(lockPage, PASS_A);
-    await addEntry(lockPage, 'Shareable sample', 'This text is approved for export.', true);
-    await addEntry(lockPage, 'Private sample', 'This text must stay private.', false);
-    await lockPage.locator('[data-view="share"]').click();
-    const preview = await lockPage.locator('#pack-preview').inputValue();
+    const mobile = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
+    const packContext = await browser.newContext({ ...mobile, acceptDownloads: true });
+    const packPage = await packContext.newPage();
+    await createVault(packPage, PASS_A);
+    await addEntry(packPage, 'Shareable sample', 'This text is approved for export.', true);
+    await addEntry(packPage, 'Private sample', 'This text must stay private.', false);
+    await packPage.locator('[data-view="share"]').click();
+
+    assert.equal(await packPage.locator('#pack-preview').inputValue(), '', 'context pack must start empty');
+    assert.equal(await packPage.locator('#pack-items [data-pack-id]').count(), 1, 'private entries must not appear in the picker');
+    await packPage.locator('#pack-items [data-pack-id]').check();
+    const preview = await packPage.locator('#pack-preview').inputValue();
     assert.match(preview, /Shareable sample/);
     assert.doesNotMatch(preview, /Private sample/);
-    await lockPage.locator('#lock-button').click();
-    await lockPage.locator('#gate').waitFor({ state: 'visible' });
-    assert.equal(await lockPage.locator('#pack-preview').inputValue(), '');
-    assert.equal(await lockPage.locator('#item-name').inputValue(), '');
-    assert.equal(await lockPage.locator('#item-content').inputValue(), '');
-    assert.equal(await lockPage.locator('#context-list').innerText(), '');
-    await lockContext.close();
+    assert.match(preview, /Purpose: General assistant/);
+    assert.equal(await packPage.locator('#pack-length').innerText(), `${preview.length} characters`);
 
-    const backupContext = await browser.newContext({ ...mobileContext, acceptDownloads: true });
+    await packPage.locator('#pack-purpose').selectOption('study');
+    assert.match(await packPage.locator('#pack-preview').inputValue(), /Purpose: Learning \/ study/);
+    await packPage.locator('#clear-selection').click();
+    assert.equal(await packPage.locator('#pack-preview').inputValue(), '');
+    await packPage.locator('#select-suggested').click();
+    assert.match(await packPage.locator('#pack-preview').inputValue(), /Shareable sample/);
+
+    const [packDownload] = await Promise.all([
+      packPage.waitForEvent('download'),
+      packPage.locator('#download-pack').click()
+    ]);
+    assert.match(packDownload.suggestedFilename(), /^contextkey-study-\d{4}-\d{2}-\d{2}\.md$/);
+
+    await packPage.locator('#lock-button').click();
+    await packPage.locator('#gate').waitFor({ state: 'visible' });
+    assert.equal(await packPage.locator('#pack-preview').inputValue(), '');
+    assert.equal(await packPage.locator('#item-name').inputValue(), '');
+    assert.equal(await packPage.locator('#item-content').inputValue(), '');
+    assert.equal(await packPage.locator('#context-list').innerText(), '');
+    await packContext.close();
+
+    const backupContext = await browser.newContext({ ...mobile, acceptDownloads: true });
     const backupPage = await backupContext.newPage();
     await createVault(backupPage, PASS_B);
     await addEntry(backupPage, 'Restored sample', 'Only the verified backup should replace the vault.', true);
     await backupPage.locator('[data-view="overview"]').click();
-    const [download] = await Promise.all([
+    const [backupDownload] = await Promise.all([
       backupPage.waitForEvent('download'),
       backupPage.locator('#backup-button').click()
     ]);
-    const backupPath = await download.path();
+    const backupPath = await backupDownload.path();
     assert.ok(backupPath, 'encrypted backup download should produce a file');
-    const backupBuffer = require('node:fs').readFileSync(backupPath);
+    const backupBuffer = fs.readFileSync(backupPath);
     await backupContext.close();
 
-    const restoreContext = await browser.newContext(mobileContext);
+    const restoreContext = await browser.newContext(mobile);
     const restorePage = await restoreContext.newPage();
     await createVault(restorePage, PASS_A);
     await addEntry(restorePage, 'Current sample', 'This entry must survive a rejected restore.', true);
 
-    restorePage.once('dialog', async (dialog) => {
-      assert.equal(dialog.type(), 'prompt');
-      await dialog.accept('incorrect-passphrase');
-    });
     await restorePage.locator('#restore-file').setInputFiles({
       name: 'contextkey-test.ckvault',
       mimeType: 'application/json',
       buffer: backupBuffer
     });
-    await waitForRestoreInputReset(restorePage);
+    await restorePage.locator('#restore-dialog').waitFor({ state: 'visible' });
+    await restorePage.locator('#restore-passphrase').fill('incorrect-passphrase');
+    await restorePage.locator('#verify-backup').click();
+    await restorePage.getByText('That passphrase did not unlock this backup.').waitFor();
     assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 1);
 
-    restorePage.on('dialog', async (dialog) => {
-      if (dialog.type() === 'prompt') await dialog.accept(PASS_B);
-      else if (dialog.type() === 'confirm') await dialog.accept();
-      else await dialog.dismiss();
-    });
-    await restorePage.locator('#restore-file').setInputFiles({
-      name: 'contextkey-test.ckvault',
-      mimeType: 'application/json',
-      buffer: backupBuffer
-    });
-    await waitForRestoreInputReset(restorePage);
+    await restorePage.locator('#restore-passphrase').fill(PASS_B);
+    await restorePage.locator('#verify-backup').click();
+    await restorePage.locator('#restore-confirm-step').waitFor({ state: 'visible' });
+    await restorePage.getByText('This encrypted backup contains 1 entry.').waitFor();
+    await restorePage.locator('#confirm-restore').click();
     await restorePage.locator('#gate').waitFor({ state: 'visible' });
     await restorePage.locator('#unlock-pass').fill(PASS_B);
     await restorePage.locator('#unlock-vault').click();
@@ -101,7 +108,7 @@ async function main() {
     assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 0);
     await restoreContext.close();
 
-    const blockedContext = await browser.newContext(mobileContext);
+    const blockedContext = await browser.newContext(mobile);
     await blockedContext.addInitScript(() => {
       Object.defineProperty(window, 'localStorage', {
         configurable: true,
@@ -110,11 +117,26 @@ async function main() {
     });
     const blockedPage = await blockedContext.newPage();
     await blockedPage.goto(BASE_URL);
-    await blockedPage.locator('#gate-error').getByText('Browser storage is blocked or unavailable').waitFor();
+    await blockedPage.getByText('Browser storage is blocked or unavailable').waitFor();
     assert.equal(await blockedPage.locator('#create-vault').isDisabled(), true);
     await blockedContext.close();
 
-    const oversizedContext = await browser.newContext(mobileContext);
+    const failedSaveContext = await browser.newContext(mobile);
+    const failedSavePage = await failedSaveContext.newPage();
+    await createVault(failedSavePage, PASS_A);
+    await failedSavePage.evaluate(() => {
+      const original = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (key === 'contextkey.encrypted.v1') throw new DOMException('Storage full', 'QuotaExceededError');
+        return original.call(this, key, value);
+      };
+    });
+    await addEntry(failedSavePage, 'Unsaved sample', 'This should not appear as a saved entry.', true);
+    await failedSavePage.getByText('Could not save this entry.').waitFor();
+    assert.equal(await failedSavePage.locator('.context-item').count(), 0, 'failed write must not commit entry in memory');
+    await failedSaveContext.close();
+
+    const oversizedContext = await browser.newContext(mobile);
     const oversizedPage = await oversizedContext.newPage();
     await oversizedPage.goto(BASE_URL);
     await oversizedPage.locator('.restore-from-gate').first().click();
@@ -126,7 +148,23 @@ async function main() {
     await oversizedPage.getByText('This backup is larger than the supported 7 MiB limit.').waitFor();
     await oversizedContext.close();
 
-    process.stdout.write('Browser security checks passed: lock cleanup, private-pack exclusion, rejected restore preservation, verified restore, blocked storage handling, and oversized backup rejection.\\n');
+    const responsiveContext = await browser.newContext({ viewport: { width: 360, height: 780 } });
+    const responsivePage = await responsiveContext.newPage();
+    await createVault(responsivePage, PASS_A);
+    const mobileWidth = await responsivePage.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      content: document.documentElement.scrollWidth
+    }));
+    assert.ok(mobileWidth.content <= mobileWidth.viewport, 'mobile app must not overflow horizontally');
+    await responsivePage.setViewportSize({ width: 1440, height: 900 });
+    const desktopWidth = await responsivePage.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      content: document.documentElement.scrollWidth
+    }));
+    assert.ok(desktopWidth.content <= desktopWidth.viewport, 'desktop app must not overflow horizontally');
+    await responsiveContext.close();
+
+    process.stdout.write('ContextKey browser checks passed: explicit sharing, preview, export, lock cleanup, backup verification, restore safety, blocked storage, failed-write rollback, size limits and responsive layout.\n');
   } finally {
     await browser.close();
   }
