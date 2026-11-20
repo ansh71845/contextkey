@@ -68,7 +68,7 @@ async function main() {
     const backupPage = await backupContext.newPage();
     await createVault(backupPage, PASS_B);
     await addEntry(backupPage, 'Restored sample', 'Only the verified backup should replace the vault.', true);
-    await backupPage.locator('[data-view="overview"]').click();
+    await backupPage.locator('button[data-view="overview"]').click();
     const [backupDownload] = await Promise.all([
       backupPage.waitForEvent('download'),
       backupPage.locator('#backup-button').click()
