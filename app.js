@@ -137,21 +137,25 @@ function newItemId() {
   return `item-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 function cleanVault(value) {
-  if (!value || typeof value !== 'object' || !Array.isArray(value.items)) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Array.isArray(value.items)) {
     throw new Error('This backup does not contain a valid ContextKey vault.');
+  }
+  if (value.items.length > 500) {
+    throw new Error('This vault contains more than the supported 500 entries.');
   }
   return {
     version: 1,
-    items: value.items.filter((item) => item && typeof item.title === 'string' && typeof item.content === 'string')
+    items: value.items.filter((item) => item && typeof item === 'object' && !Array.isArray(item) &&
+      typeof item.title === 'string' && typeof item.content === 'string')
       .map((item) => ({
-        id: String(item.id || newItemId()),
+        id: typeof item.id === 'string' && item.id.length <= 100 ? item.id : newItemId(),
         section: SECTION_ORDER.includes(item.section) ? item.section : 'About',
-        title: item.title.slice(0, 70),
-        content: item.content.slice(0, 1400),
+        title: item.title.trim().slice(0, 70),
+        content: item.content.trim().slice(0, 1400),
         shareable: item.shareable === true,
-        createdAt: item.createdAt || new Date().toISOString(),
-        updatedAt: item.updatedAt || new Date().toISOString()
-      }))
+        createdAt: typeof item.createdAt === 'string' ? item.createdAt.slice(0, 40) : new Date().toISOString(),
+        updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt.slice(0, 40) : new Date().toISOString()
+      })).filter((item) => item.title && item.content)
   };
 }
 function setButtonBusy(button, busy, busyText = 'Working…') {
@@ -220,6 +224,7 @@ async function unlockVault() {
     cryptoKey = null;
     vault = null;
     vaultSalt = null;
+    $('unlock-pass').value = '';
     const message = error.name === 'OperationError'
       ? 'That passphrase did not unlock this vault.'
       : (error.message || 'Could not open the vault.');
@@ -250,6 +255,8 @@ function clearSession() {
   if ($('copy-pack')) $('copy-pack').disabled = true;
   if ($('download-pack')) $('download-pack').disabled = true;
   if ($('item-form')) $('item-form').reset();
+  if ($('content-count')) $('content-count').textContent = '0 / 1,400';
+  if ($('library-filter')) $('library-filter').value = 'all';
   if ($('restore-file')) $('restore-file').value = '';
 }
 function lockVault() {
@@ -271,7 +278,7 @@ function setView(name) {
     else button.removeAttribute('aria-current');
   });
   if (name === 'share') renderPackBuilder();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => ({
@@ -295,9 +302,16 @@ function renderStats() {
 }
 function renderLibrary() {
   const query = $('search-items').value.trim().toLowerCase();
+  const filter = $('library-filter')?.value || 'all';
   const allItems = [...vault.items].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-  const filtered = allItems.filter((item) => `${item.title} ${item.content} ${item.section}`.toLowerCase().includes(query));
-  $('library-count').textContent = allItems.length;
+  const filtered = allItems.filter((item) => {
+    const matchesQuery = `${item.title} ${item.content} ${item.section}`.toLowerCase().includes(query);
+    const matchesFilter = filter === 'all' || (filter === 'private' && !item.shareable) ||
+      (filter === 'shareable' && item.shareable) || item.section === filter;
+    return matchesQuery && matchesFilter;
+  });
+  $('library-count').textContent = filtered.length === allItems.length
+    ? String(allItems.length) : `${filtered.length}/${allItems.length}`;
   $('context-list').innerHTML = filtered.map((item) => `
     <article class="context-item" data-id="${escapeHtml(item.id)}">
       <div class="context-item-head">
@@ -315,9 +329,14 @@ function renderLibrary() {
     $('context-list').innerHTML = '<div class="empty-state visible"><h3>No matching entries</h3><p>Try a different word or category.</p></div>';
   }
 }
+function updateContentCount() {
+  const length = $('item-content').value.length;
+  $('content-count').textContent = `${length.toLocaleString()} / 1,400`;
+}
 function resetItemForm() {
   editingId = null;
   $('item-form').reset();
+  updateContentCount();
   $('item-section').value = 'About';
   $('form-mode').textContent = 'NEW';
   $('form-title').textContent = 'Add useful context';
@@ -368,6 +387,7 @@ function editItem(id) {
   $('item-section').value = item.section;
   $('item-name').value = item.title;
   $('item-content').value = item.content;
+  updateContentCount();
   $('item-shareable').checked = item.shareable;
   $('form-mode').textContent = 'EDITING';
   $('form-title').textContent = 'Update context entry';
@@ -697,6 +717,8 @@ function init() {
   $('item-form').addEventListener('submit', handleItemSubmit);
   $('cancel-edit').addEventListener('click', resetItemForm);
   $('search-items').addEventListener('input', renderLibrary);
+  $('library-filter').addEventListener('change', renderLibrary);
+  $('item-content').addEventListener('input', updateContentCount);
   $('context-list').addEventListener('click', (event) => {
     const action = event.target.closest('[data-action]');
     if (!action) return;
