@@ -117,6 +117,7 @@ function showToast(message) {
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
 }
 function showGate(mode, error = '') {
+  $('skip-link').href = '#gate-title';
   $('gate').hidden = false;
   $('app').hidden = true;
   $('setup-fields').hidden = mode !== 'setup';
@@ -127,6 +128,7 @@ function showGate(mode, error = '') {
   if (mode === 'setup') $('new-pass').focus();
 }
 function showApp() {
+  $('skip-link').href = '#view-overview';
   $('gate').hidden = true;
   $('app').hidden = false;
   renderAll();
