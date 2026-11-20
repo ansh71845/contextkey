@@ -18,9 +18,11 @@ async function addEntry(page, title, content, shareable) {
   await page.locator('[data-view="library"]').click();
   await page.locator('#item-name').fill(title);
   await page.locator('#item-content').fill(content);
+  assert.equal(await page.locator('#content-count').innerText(), `${content.length} / 1,400`);
   if (shareable) await page.locator('.share-toggle').click();
   await page.locator('#item-form').locator('button[type="submit"]').click();
   await page.getByText(title, { exact: true }).waitFor();
+  assert.equal(await page.locator('#content-count').innerText(), '0 / 1,400');
 }
 
 async function main() {
@@ -32,6 +34,13 @@ async function main() {
     await createVault(packPage, PASS_A);
     await addEntry(packPage, 'Shareable sample', 'This text is approved for export.', true);
     await addEntry(packPage, 'Private sample', 'This text must stay private.', false);
+    await packPage.locator('#library-filter').selectOption('private');
+    assert.equal(await packPage.locator('.context-item').count(), 1, 'private filter should show only private entries');
+    await packPage.getByText('Private sample', { exact: true }).waitFor();
+    await packPage.locator('#library-filter').selectOption('shareable');
+    assert.equal(await packPage.locator('.context-item').count(), 1, 'share-ready filter should show only approved entries');
+    await packPage.getByText('Shareable sample', { exact: true }).waitFor();
+    await packPage.locator('#library-filter').selectOption('all');
     await packPage.locator('[data-view="share"]').click();
 
     assert.equal(await packPage.locator('#pack-preview').inputValue(), '', 'context pack must start empty');
