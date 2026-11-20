@@ -1,0 +1,7 @@
+# Never commit user data or exported context
+*.ckvault
+contextkey-*.md
+*.context-pack.md
+*.backup
+.DS_Store
+Thumbs.db

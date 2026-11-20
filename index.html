@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10151d">
+  <meta name="description" content="A local-first wallet for the context you choose to share with AI assistants.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self';">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <title>ContextKey — your context, your choice</title>
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <section id="gate" class="gate-shell" aria-labelledby="gate-title">
+    <div class="gate-card">
+      <div class="brand brand-large"><span class="brand-mark">C</span><span>CONTEXTKEY</span></div>
+      <p class="eyebrow">LOCAL-FIRST AI CONTEXT WALLET</p>
+      <h1 id="gate-title">Your context.<br><span>Your choice.</span></h1>
+      <p class="gate-copy">Keep useful background in one private vault. Choose exactly what goes into each AI context pack.</p>
+      <div id="setup-fields" class="gate-fields" hidden>
+        <label for="new-pass">Create a vault passphrase</label>
+        <input id="new-pass" type="password" minlength="12" autocomplete="new-password" placeholder="Use 12+ characters">
+        <label for="confirm-pass">Confirm passphrase</label>
+        <input id="confirm-pass" type="password" minlength="12" autocomplete="new-password" placeholder="Enter it again">
+        <button id="create-vault" class="button button-primary button-full">Create my encrypted vault <span>→</span></button>
+        <button class="restore-from-gate text-button">Restore an encrypted backup</button>
+        <p class="fine-print">Your passphrase is never sent anywhere. It cannot be recovered. Keep a secure backup.</p>
+      </div>
+      <div id="unlock-fields" class="gate-fields" hidden>
+        <label for="unlock-pass">Unlock your vault</label>
+        <input id="unlock-pass" type="password" autocomplete="current-password" placeholder="Enter your passphrase">
+        <button id="unlock-vault" class="button button-primary button-full">Unlock vault <span>→</span></button>
+        <button class="restore-from-gate text-button">Restore an encrypted backup</button>
+        <button id="reset-vault" class="text-button danger-text">Forgot passphrase? Reset this device vault</button>
+        <p class="fine-print">Resetting permanently deletes the encrypted vault on this device. Restore an exported backup instead, if you have one.</p>
+      </div>
+      <p id="gate-error" class="error-message" role="alert" aria-live="polite"></p>
+      <div class="privacy-strip"><span class="privacy-dot"></span><span>No account · No cloud database · No AI API key</span></div>
+    </div>
+  </section>
+
+  <div id="app" class="app-shell" hidden>
+    <header class="topbar">
+      <a class="brand" href="#overview" aria-label="ContextKey home"><span class="brand-mark">C</span><span>CONTEXTKEY</span></a>
+      <div class="topbar-actions">
+        <span class="local-badge"><span class="privacy-dot"></span> ENCRYPTED ON THIS DEVICE</span>
+        <button id="lock-button" class="icon-button" aria-label="Lock vault" title="Lock vault">⌑</button>
+      </div>
+    </header>
+
+    <main class="main-layout">
+      <aside class="side-panel">
+        <p class="nav-label">WORKSPACE</p>
+        <nav class="nav-list" aria-label="Main navigation">
+          <button class="nav-item active" data-view="overview"><span class="nav-symbol">⌂</span> Overview</button>
+          <button class="nav-item" data-view="library"><span class="nav-symbol">▤</span> Context library</button>
+          <button class="nav-item" data-view="share"><span class="nav-symbol">⇧</span> Build a context pack</button>
+        </nav>
+        <div class="side-note">
+          <span class="side-note-icon">◈</span>
+          <strong>Private by default</strong>
+          <p>New entries stay private until you explicitly mark them shareable.</p>
+        </div>
+        <div class="side-footer">VERSION 0.1 · OFFLINE-READY</div>
+      </aside>
+
+      <section class="content-panel">
+        <section id="view-overview" class="view active-view">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">YOUR PERSONAL CONTEXT LAYER</p>
+              <h1>Keep the important stuff.<br><span>Leave the rest private.</span></h1>
+              <p class="subtitle">A small, portable source of truth for how you work, learn, and think — independent of any one AI provider.</p>
+            </div>
+            <div class="heading-chip"><span class="chip-orb"></span> YOUR DATA, YOUR DEVICE</div>
+          </div>
+
+          <div class="stats-grid">
+            <article class="stat-card"><span class="stat-label">SAVED CONTEXT</span><strong id="stat-total">0</strong><span class="stat-foot">items in your vault</span></article>
+            <article class="stat-card"><span class="stat-label">PRIVATE</span><strong id="stat-private">0</strong><span class="stat-foot">never included by default</span></article>
+            <article class="stat-card"><span class="stat-label">SHARE-READY</span><strong id="stat-share">0</strong><span class="stat-foot">you approved for export</span></article>
+          </div>
+
+          <div class="section-heading"><div><p class="eyebrow">START HERE</p><h2>Make your context useful</h2></div><span class="section-index">01 / 03</span></div>
+          <div class="action-grid">
+            <button class="action-card" data-go="library"><span class="action-icon">＋</span><span class="action-title">Add context</span><span class="action-copy">Save a preference, goal, project detail, or working rule.</span><span class="action-arrow">↗</span></button>
+            <button class="action-card" data-go="share"><span class="action-icon">⇧</span><span class="action-title">Build a context pack</span><span class="action-copy">Select the few details an assistant needs for one task.</span><span class="action-arrow">↗</span></button>
+            <button class="action-card" id="backup-button"><span class="action-icon">⬇</span><span class="action-title">Back up your vault</span><span class="action-copy">Download an encrypted copy before changing devices.</span><span class="action-arrow">↗</span></button>
+          </div>
+
+          <div class="principle-card">
+            <div class="principle-symbol">✳</div>
+            <div><p class="eyebrow">THE CONTEXTKEY RULE</p><h3>Useful context is not the same as all your data.</h3><p>Share the minimum information needed for the current task. Keep sensitive details out of AI chats unless you have a clear reason and trust the service.</p></div>
+          </div>
+          <p class="small-note">ContextKey does not connect to AI providers or enforce their actions. It prepares clear, user-selected context for you to share manually.</p>
+        </section>
+
+        <section id="view-library" class="view" hidden>
+          <div class="page-heading compact-heading"><div><p class="eyebrow">YOUR PRIVATE SOURCE OF TRUTH</p><h1>Context library</h1><p class="subtitle">Save information that improves future conversations. Keep each entry specific and easy to update.</p></div></div>
+          <div class="library-layout">
+            <form id="item-form" class="form-card">
+              <div class="card-topline"><span class="eyebrow">NEW ENTRY</span><span id="form-mode" class="status-pill">CREATE</span></div>
+              <h2 id="form-title">Add useful context</h2>
+              <label for="item-section">Category</label>
+              <select id="item-section" required>
+                <option value="About">About me</option>
+                <option value="Goals">Goals</option>
+                <option value="Preferences">Preferences</option>
+                <option value="Skills">Skills & knowledge</option>
+                <option value="Projects">Projects</option>
+                <option value="Rules">Working rules</option>
+              </select>
+              <label for="item-name">Short title</label>
+              <input id="item-name" maxlength="70" required placeholder="e.g. How I prefer explanations">
+              <label for="item-content">Context</label>
+              <textarea id="item-content" rows="5" maxlength="1400" required placeholder="Write one clear fact, preference, goal, or project detail..."></textarea>
+              <label class="share-toggle"><input id="item-shareable" type="checkbox"><span class="toggle-visual"></span><span><strong>Allow this entry in context packs</strong><small>Off by default. You can still choose it before exporting.</small></span></label>
+              <div class="form-actions"><button id="save-item" class="button button-primary" type="submit">Save entry <span>→</span></button><button id="cancel-edit" class="button button-quiet" type="button" hidden>Cancel</button></div>
+              <p class="form-hint">Do not save passwords, account numbers, private keys, or sensitive personal records.</p>
+            </form>
+            <div class="library-list-panel">
+              <div class="list-toolbar"><div><p class="eyebrow">SAVED ENTRIES</p><h2>Your context</h2></div><div class="search-wrap"><span>⌕</span><input id="search-items" type="search" placeholder="Search entries" aria-label="Search context entries"></div></div>
+              <div id="context-list" class="context-list"></div>
+              <div id="empty-library" class="empty-state"><span class="empty-icon">◌</span><h3>Your library is empty</h3><p>Add one useful detail. Keep it short, accurate, and relevant to future work.</p><button class="button button-secondary" data-go="library">Create first entry</button></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-share" class="view" hidden>
+          <div class="page-heading compact-heading"><div><p class="eyebrow">SELECTIVE SHARING</p><h1>Build a context pack</h1><p class="subtitle">Choose a task, select only relevant entries, preview the exact text, then copy or download it.</p></div></div>
+          <div class="share-layout">
+            <div class="select-panel">
+              <div class="card-topline"><span class="eyebrow">01 · PURPOSE</span><span class="status-pill">MANUAL SHARE</span></div>
+              <label for="pack-purpose">What are you using an assistant for?</label>
+              <select id="pack-purpose">
+                <option value="general">General assistant</option>
+                <option value="study">Learning / study</option>
+                <option value="coding">Coding / building</option>
+                <option value="writing">Writing / communication</option>
+                <option value="planning">Planning / decisions</option>
+              </select>
+              <div class="card-topline context-picker-heading"><span class="eyebrow">02 · CHOOSE CONTEXT</span><button id="select-shareable" class="mini-button">Select share-ready</button></div>
+              <div id="pack-items" class="pack-items"></div>
+              <div id="empty-pack" class="empty-state compact-empty"><span class="empty-icon">▧</span><h3>Nothing to share yet</h3><p>Add context and mark only suitable entries as shareable.</p><button class="button button-secondary" data-go="library">Open context library</button></div>
+            </div>
+            <div class="preview-panel">
+              <div class="preview-header"><div><p class="eyebrow">03 · REVIEW BEFORE SHARING</p><h2>Pack preview</h2></div><span class="preview-lock">◈ PRIVATE UNTIL COPIED</span></div>
+              <label for="pack-preview">Exact text that will be shared</label>
+              <textarea id="pack-preview" class="pack-preview" spellcheck="false" readonly placeholder="Select entries on the left to create a preview..."></textarea>
+              <div class="preview-actions"><button id="copy-pack" class="button button-primary" disabled>Copy context pack <span>↗</span></button><button id="download-pack" class="button button-secondary" disabled>Download .md</button></div>
+              <p id="pack-feedback" class="feedback-line" aria-live="polite"></p>
+              <div class="target-note"><strong>Works with different assistants.</strong><p>Paste the pack into a new chat or an assistant's custom-instructions area. The receiving service's own privacy, age, and usage rules still apply.</p></div>
+            </div>
+          </div>
+        </section>
+
+        <footer class="app-footer"><span>CONTEXTKEY · EXPERIMENTAL MVP</span><span><button id="export-backup-footer" class="footer-button">Encrypted backup</button><button id="restore-backup-footer" class="footer-button">Restore backup</button><button id="wipe-vault" class="footer-button danger-text">Delete vault data</button></span></footer>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <input id="restore-file" type="file" accept=".ckvault,application/json" hidden>
+  <script src="app.js" defer></script>
+</body>
+</html>
