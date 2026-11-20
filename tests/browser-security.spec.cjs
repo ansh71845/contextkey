@@ -101,7 +101,32 @@ async function main() {
     assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 0);
     await restoreContext.close();
 
-    process.stdout.write('Browser security checks passed: lock cleanup, private-pack exclusion, rejected restore preservation, and verified restore.\\n');
+    const blockedContext = await browser.newContext(mobileContext);
+    await blockedContext.addInitScript(() => {
+      Object.defineProperty(window, 'localStorage', {
+        configurable: true,
+        get() { throw new DOMException('Storage disabled', 'SecurityError'); }
+      });
+    });
+    const blockedPage = await blockedContext.newPage();
+    await blockedPage.goto(BASE_URL);
+    await blockedPage.locator('#gate-error').getByText('Browser storage is blocked or unavailable').waitFor();
+    assert.equal(await blockedPage.locator('#create-vault').isDisabled(), true);
+    await blockedContext.close();
+
+    const oversizedContext = await browser.newContext(mobileContext);
+    const oversizedPage = await oversizedContext.newPage();
+    await oversizedPage.goto(BASE_URL);
+    await oversizedPage.locator('.restore-from-gate').first().click();
+    await oversizedPage.locator('#restore-file').setInputFiles({
+      name: 'oversized.ckvault',
+      mimeType: 'application/json',
+      buffer: Buffer.alloc(7 * 1024 * 1024 + 1)
+    });
+    await oversizedPage.getByText('This backup is larger than the supported 7 MiB limit.').waitFor();
+    await oversizedContext.close();
+
+    process.stdout.write('Browser security checks passed: lock cleanup, private-pack exclusion, rejected restore preservation, verified restore, blocked storage handling, and oversized backup rejection.\\n');
   } finally {
     await browser.close();
   }
