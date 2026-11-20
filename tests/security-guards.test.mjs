@@ -49,3 +49,21 @@ test('service worker cache version is bumped for the hardened shell', () => {
   const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
   assert.match(sw, /contextkey-shell-v2/);
 });
+
+test('backup size is rejected before reading the file into memory', () => {
+  const start = app.indexOf('async function restoreBackup(file)');
+  const end = app.indexOf('\\nasync function wipeVault()', start);
+  const restore = app.slice(start, end);
+  const sizeGuard = restore.indexOf('file.size > 7 * 1024 * 1024');
+  const readFile = restore.indexOf('await file.text()');
+  assert.notEqual(sizeGuard, -1);
+  assert.ok(sizeGuard < readFile, 'file size must be checked before reading the file');
+});
+
+test('blocked browser storage produces a visible recovery message instead of crashing startup', () => {
+  const start = app.indexOf('function init()');
+  const init = app.slice(start);
+  assert.match(init, /try \\{\\s*existing = localStorage\\.getItem\\(STORAGE_KEY\\);\\s*\\} catch/);
+  assert.match(init, /Browser storage is blocked or unavailable/);
+  assert.match(init, /\\$\\('create-vault'\\)\\.disabled = true/);
+});
