@@ -18,7 +18,7 @@ async function addEntry(page, title, content, shareable) {
   await page.locator('[data-view="library"]').click();
   await page.locator('#item-name').fill(title);
   await page.locator('#item-content').fill(content);
-  if (shareable) await page.locator('#item-shareable').check();
+  if (shareable) await page.locator('.share-toggle').click();
   await page.locator('#item-form').locator('button[type="submit"]').click();
   await page.getByText(title, { exact: true }).waitFor();
 }
@@ -134,7 +134,7 @@ async function main() {
     await failedSavePage.locator('[data-view="library"]').click();
     await failedSavePage.locator('#item-name').fill('Unsaved sample');
     await failedSavePage.locator('#item-content').fill('This should not appear as a saved entry.');
-    await failedSavePage.locator('#item-shareable').check();
+    await failedSavePage.locator('.share-toggle').click();
     await failedSavePage.locator('#item-form button[type="submit"]').click();
     await failedSavePage.getByText('Browser storage could not save this change.').waitFor();
     assert.equal(await failedSavePage.locator('.context-item').count(), 0, 'failed write must not commit entry in memory');
