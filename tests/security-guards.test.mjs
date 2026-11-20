@@ -67,3 +67,11 @@ test('blocked browser storage produces a visible recovery message instead of cra
   assert.match(init, /Browser storage is blocked or unavailable/);
   assert.match(init, /\$\('create-vault'\)\.disabled = true/);
 });
+
+test('Pages deployment stages only the public app shell, not repository research or tests', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /mkdir -p _site/);
+  assert.match(workflow, /cp index\\.html styles\\.css app\\.js manifest\\.webmanifest sw\\.js icon\\.svg icon-192\\.png icon-512\\.png _site\\//);
+  assert.match(workflow, /path: _site/);
+  assert.doesNotMatch(workflow, /path: \\./);
+});
