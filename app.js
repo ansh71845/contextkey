@@ -72,6 +72,13 @@ function decodeVaultEnvelope(envelope) {
       typeof envelope.salt !== 'string' || typeof envelope.iv !== 'string' || typeof envelope.data !== 'string') {
     throw new Error('This vault backup uses an unsupported or invalid encryption format.');
   }
+  // Reject oversized encoded fields before allocating decoded byte arrays.
+  if (envelope.salt.length !== 24 || envelope.iv.length !== 16 ||
+      envelope.data.length > 6990528 || !/^[A-Za-z0-9+/]+={0,2}$/.test(envelope.salt) ||
+      !/^[A-Za-z0-9+/]+={0,2}$/.test(envelope.iv) ||
+      !/^[A-Za-z0-9+/]+={0,2}$/.test(envelope.data)) {
+    throw new Error('This vault backup has invalid or oversized encryption data.');
+  }
   const salt = base64ToBytes(envelope.salt);
   const iv = base64ToBytes(envelope.iv);
   const data = base64ToBytes(envelope.data);
@@ -380,6 +387,8 @@ function downloadEncryptedBackup() {
 async function restoreBackup(file) {
   if (!file) return;
   try {
+    // The encrypted payload limit is 5 MiB; allow modest JSON/base64 overhead.
+    if (file.size > 7 * 1024 * 1024) throw new Error('This backup is larger than the supported 7 MiB limit.');
     const text = await file.text();
     const backup = JSON.parse(text);
     const backupPassphrase = window.prompt('Enter the passphrase used to create this encrypted backup. The current vault will not be replaced unless this backup successfully decrypts.');
@@ -415,7 +424,16 @@ function init() {
     $('create-vault').disabled = true;
     return;
   }
-  const existing = localStorage.getItem(STORAGE_KEY);
+  let existing;
+  try {
+    existing = localStorage.getItem(STORAGE_KEY);
+  } catch {
+    showGate('setup', 'Browser storage is blocked or unavailable. Enable site storage for this website, then reload ContextKey.');
+    $('create-vault').disabled = true;
+    $('unlock-vault').disabled = true;
+    document.querySelectorAll('.restore-from-gate').forEach((button) => { button.disabled = true; });
+    return;
+  }
   showGate(existing ? 'unlock' : 'setup');
 
   $('create-vault').addEventListener('click', createVault);
