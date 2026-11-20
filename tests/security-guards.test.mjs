@@ -63,7 +63,7 @@ test('backup size is rejected before reading the file into memory', () => {
 test('blocked browser storage produces a visible recovery message instead of crashing startup', () => {
   const start = app.indexOf('function init()');
   const init = app.slice(start);
-  assert.match(init, /try \\{\\s*existing = localStorage\\.getItem\\(STORAGE_KEY\\);\\s*\\} catch/);
+  assert.match(init, /try \{\s*existing = localStorage\.getItem\(STORAGE_KEY\);\s*\} catch/);
   assert.match(init, /Browser storage is blocked or unavailable/);
-  assert.match(init, /\\$\\('create-vault'\\)\\.disabled = true/);
+  assert.match(init, /\$\('create-vault'\)\.disabled = true/);
 });
