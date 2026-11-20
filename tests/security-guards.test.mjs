@@ -158,5 +158,5 @@ test('entry editor exposes a live character count and imported vaults have a bou
 
 
 test('document head contains no literal escaped newlines before metadata tags', () => {
-  assert.equal(html.includes('\\\\n  <meta'), false);
+  assert.equal(html.includes(String.fromCharCode(92, 110) + '  <meta'), false);
 });
