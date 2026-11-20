@@ -155,3 +155,8 @@ test('entry editor exposes a live character count and imported vaults have a bou
   assert.match(app, /value\.items\.length > 500/);
   assert.match(app, /more than the supported 500 entries/);
 });
+
+
+test('document head contains no literal escaped newlines before metadata tags', () => {
+  assert.equal(html.includes('\\\\n  <meta'), false);
+});
