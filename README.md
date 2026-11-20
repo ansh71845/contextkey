@@ -1,6 +1,6 @@
 # ContextKey — Local-First AI Context Wallet
 
-**Version:** 0.2 (experimental MVP)  
+**Version:** 0.3 (experimental MVP)  
 
 **Your context. Your choice.** Keep useful background in an encrypted, on-device vault. Choose exactly what goes into each task-specific context pack.
 
@@ -18,7 +18,7 @@ ContextKey keeps useful personal context in one place and lets you choose which 
 
 - Create a vault protected with a passphrase of at least 12 characters.
 - Encrypt saved context in the browser using PBKDF2-SHA-256 and AES-256-GCM.
-- Save, edit, search, and delete context entries.
+- Save, edit, search, filter, and delete context entries. Filter by privacy state or category, with a live character count while writing.
 - Keep each new entry private by default.
 - Select only approved entries for a task-specific context pack. Packs start empty; nothing is included until you select it.
 - Optionally add purpose-based suggestions, then review and clear selections before exporting.
