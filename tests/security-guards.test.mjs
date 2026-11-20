@@ -7,6 +7,19 @@ const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
 const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
+function relativeLuminance(hex) {
+  const channels = hex.replace('#', '').match(/.{2}/g).map((part) => parseInt(part, 16) / 255);
+  const linear = channels.map((channel) => channel <= 0.04045
+    ? channel / 12.92
+    : ((channel + 0.055) / 1.055) ** 2.4);
+  return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+}
+
+function contrastRatio(foreground, background) {
+  const values = [relativeLuminance(foreground), relativeLuminance(background)].sort((a, b) => b - a);
+  return (values[0] + 0.05) / (values[1] + 0.05);
+}
+
 test('vault envelopes use the supported PBKDF2 and AES-GCM format', () => {
   assert.match(app, /PBKDF2_ITERATIONS = 310000/);
   assert.match(app, /PBKDF2-SHA256/);
@@ -111,4 +124,20 @@ test('app remains self-hosted without external font or script dependencies', () 
   assert.match(html, /script-src 'self'/);
   assert.match(html, /font-src 'self'/);
   assert.doesNotMatch(html, /https:\/\/(fonts\.googleapis|fonts\.gstatic|cdn\.)/i);
+});
+
+test('secondary typography and input hints meet WCAG AA contrast on primary surfaces', () => {
+  const token = (name) => {
+    const match = css.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`));
+    assert.ok(match, `missing ${name} colour token`);
+    return match[1];
+  };
+  const canvas = token('canvas');
+  const surface = token('surface');
+  const soft = token('soft');
+  const muted = token('muted');
+  assert.ok(contrastRatio(soft, canvas) >= 4.5, 'secondary labels must meet 4.5:1 on the canvas');
+  assert.ok(contrastRatio(soft, surface) >= 4.5, 'secondary labels must meet 4.5:1 on white surfaces');
+  assert.ok(contrastRatio(muted, canvas) >= 4.5, 'body copy must meet 4.5:1 on the canvas');
+  assert.ok(contrastRatio('#65736a', surface) >= 4.5, 'input hints must meet 4.5:1 on white surfaces');
 });
