@@ -131,9 +131,14 @@ async function main() {
         return original.call(this, key, value);
       };
     });
-    await addEntry(failedSavePage, 'Unsaved sample', 'This should not appear as a saved entry.', true);
-    await failedSavePage.getByText('Could not save this entry.').waitFor();
+    await failedSavePage.locator('[data-view="library"]').click();
+    await failedSavePage.locator('#item-name').fill('Unsaved sample');
+    await failedSavePage.locator('#item-content').fill('This should not appear as a saved entry.');
+    await failedSavePage.locator('#item-shareable').check();
+    await failedSavePage.locator('#item-form button[type="submit"]').click();
+    await failedSavePage.getByText('Browser storage could not save this change.').waitFor();
     assert.equal(await failedSavePage.locator('.context-item').count(), 0, 'failed write must not commit entry in memory');
+    assert.equal(await failedSavePage.locator('#item-name').inputValue(), 'Unsaved sample', 'failed save should preserve the draft for retry');
     await failedSaveContext.close();
 
     const oversizedContext = await browser.newContext(mobile);
