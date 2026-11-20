@@ -699,7 +699,10 @@ function init() {
     if (action.dataset.action === 'edit') editItem(action.dataset.id);
     if (action.dataset.action === 'delete') deleteItem(action.dataset.id);
   });
-  document.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
+  document.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', (event) => {
+    event.preventDefault();
+    setView(button.dataset.view);
+  }));
   document.querySelectorAll('[data-go]').forEach((button) => button.addEventListener('click', () => setView(button.dataset.go)));
   $('pack-items').addEventListener('change', (event) => {
     const checkbox = event.target.closest('[data-pack-id]');
