@@ -38,10 +38,10 @@ function base64ToBytes(value) {
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
   return bytes;
 }
-async function deriveKey(passphrase, salt) {
+async function deriveKey(passphrase, salt, iterations = PBKDF2_ITERATIONS) {
   const material = await crypto.subtle.importKey('raw', encoder.encode(passphrase), 'PBKDF2', false, ['deriveKey']);
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
     material,
     { name: 'AES-GCM', length: 256 },
     false,
@@ -63,6 +63,29 @@ async function encryptObject(value, key, salt) {
     data: bytesToBase64(new Uint8Array(cipher)),
     updatedAt: new Date().toISOString()
   };
+}
+function decodeVaultEnvelope(envelope) {
+  if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope) ||
+      envelope.format !== 'contextkey-vault' || envelope.version !== 1 ||
+      envelope.kdf !== 'PBKDF2-SHA256' || envelope.iterations !== PBKDF2_ITERATIONS ||
+      envelope.cipher !== 'AES-256-GCM' ||
+      typeof envelope.salt !== 'string' || typeof envelope.iv !== 'string' || typeof envelope.data !== 'string') {
+    throw new Error('This vault backup uses an unsupported or invalid encryption format.');
+  }
+  const salt = base64ToBytes(envelope.salt);
+  const iv = base64ToBytes(envelope.iv);
+  const data = base64ToBytes(envelope.data);
+  if (salt.length !== 16 || iv.length !== 12 || data.length < 16 || data.length > 5 * 1024 * 1024) {
+    throw new Error('This vault backup has invalid encryption data or exceeds the supported size.');
+  }
+  return { salt, iv, data };
+}
+async function decryptVaultEnvelope(envelope, passphrase) {
+  const { salt, iv, data } = decodeVaultEnvelope(envelope);
+  const key = await deriveKey(passphrase, salt, envelope.iterations);
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+  const restoredVault = cleanVault(JSON.parse(decoder.decode(plain)));
+  return { vault: restoredVault, key, salt };
 }
 async function persistVault() {
   if (!vault || !cryptoKey || !vaultSalt) return;
@@ -135,11 +158,11 @@ async function unlockVault() {
   if (!pass) return showGate('unlock', 'Enter your passphrase.');
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    if (!stored || stored.format !== 'contextkey-vault' || stored.version !== 1) throw new Error('Vault file is missing or invalid.');
-    vaultSalt = base64ToBytes(stored.salt);
-    cryptoKey = await deriveKey(pass, vaultSalt);
-    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: base64ToBytes(stored.iv) }, cryptoKey, base64ToBytes(stored.data));
-    vault = cleanVault(JSON.parse(decoder.decode(plain)));
+    if (!stored) throw new Error('Vault file is missing or invalid.');
+    const unlocked = await decryptVaultEnvelope(stored, pass);
+    vaultSalt = unlocked.salt;
+    cryptoKey = unlocked.key;
+    vault = unlocked.vault;
     $('unlock-pass').value = '';
     showApp();
   } catch (error) {
@@ -156,6 +179,19 @@ function lockVault() {
   editingId = null;
   selectedIds.clear();
   packInitialized = false;
+  // Remove decrypted content from the DOM, not merely hide the app shell.
+  ['context-list', 'pack-items'].forEach((id) => { if ($(id)) $(id).replaceChildren(); });
+  ['pack-preview', 'item-name', 'item-content', 'search-items', 'unlock-pass', 'new-pass', 'confirm-pass'].forEach((id) => {
+    if ($(id)) $(id).value = '';
+  });
+  ['stat-total', 'stat-private', 'stat-share'].forEach((id) => { if ($(id)) $(id).textContent = '0'; });
+  if ($('pack-feedback')) $('pack-feedback').textContent = '';
+  if ($('empty-library')) $('empty-library').classList.remove('visible');
+  if ($('empty-pack')) $('empty-pack').classList.remove('visible');
+  if ($('copy-pack')) $('copy-pack').disabled = true;
+  if ($('download-pack')) $('download-pack').disabled = true;
+  if ($('item-form')) $('item-form').reset();
+  if ($('restore-file')) $('restore-file').value = '';
   showGate('unlock');
 }
 function setView(name) {
@@ -346,10 +382,11 @@ async function restoreBackup(file) {
   try {
     const text = await file.text();
     const backup = JSON.parse(text);
-    if (backup.format !== 'contextkey-vault' || backup.version !== 1 || !backup.salt || !backup.iv || !backup.data) {
-      throw new Error('This is not a valid ContextKey encrypted backup.');
-    }
-    if (!window.confirm('Restore this backup and replace the encrypted vault currently on this device? Download a backup of the current vault first if you need it.')) return;
+    const backupPassphrase = window.prompt('Enter the passphrase used to create this encrypted backup. The current vault will not be replaced unless this backup successfully decrypts.');
+    if (backupPassphrase === null) return;
+    if (!backupPassphrase) throw new Error('Enter the backup passphrase to verify this file.');
+    await decryptVaultEnvelope(backup, backupPassphrase);
+    if (!window.confirm('Backup verified. Restore it and replace the encrypted vault currently on this device? Download a backup of the current vault first if you need it.')) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(backup));
     lockVault();
     showToast('Backup restored. Unlock it with the passphrase used when it was created.');
