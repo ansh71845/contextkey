@@ -103,8 +103,10 @@ async function persistVault(nextVault = vault, key = cryptoKey, salt = vaultSalt
   const encrypted = await encryptObject(nextVault, key, salt);
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(encrypted));
-  } catch {
-    throw new Error('Browser storage could not save this change. Check available device storage and try again.');
+  } catch (error) {
+    const failure = new Error('Browser storage could not save this change. Check available device storage and try again.');
+    failure.name = error?.name || 'StorageError';
+    throw failure;
   }
 }
 function showToast(message) {
@@ -527,6 +529,7 @@ function clearRestoreState() {
   restoreInProgress = false;
   $('restore-passphrase').value = '';
   $('restore-error').textContent = '';
+  $('restore-confirm-error').textContent = '';
   $('restore-verify-step').hidden = false;
   $('restore-confirm-step').hidden = true;
   $('verify-backup').disabled = false;
@@ -604,10 +607,11 @@ function confirmRestore() {
     closeRestoreDialog();
     lockVault();
     showToast('Backup restored. Unlock it with the passphrase used to create it.');
-  } catch {
-    showToast('Browser storage could not restore this backup. Your current vault was not changed.');
+  } catch (error) {
+    $('restore-confirm-error').textContent = storageErrorMessage(error, 'Browser storage could not restore this backup. Your current vault was not changed.');
   } finally {
     restoreInProgress = false;
+    setButtonBusy($('confirm-restore'), false);
   }
 }
 async function wipeVault() {
