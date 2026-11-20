@@ -106,15 +106,15 @@ test('storage errors do not commit an unsaved entry to the in-memory vault', () 
 });
 
 test('service worker cache is versioned and offline HTML fallback is navigation-only', () => {
-  assert.match(sw, /contextkey-shell-v3/);
+  assert.match(sw, /contextkey-shell-v4/);
   assert.match(sw, /event\.request\.mode === 'navigate'/);
   const fetchHandler = sw.slice(sw.indexOf("self.addEventListener('fetch'"));
   assert.match(fetchHandler, /catch\(\(\) => caches\.match\('\.\/index\.html'\)\)/);
 });
 
 test('design system includes responsive layout, visible focus and reduced-motion support', () => {
-  assert.match(css, /--canvas: #f3f4ef/);
-  assert.match(css, /--green: #315b48/);
+  assert.match(css, /--canvas: #f2efe7/);
+  assert.match(css, /--green: #205442/);
   assert.match(css, /:focus-visible/);
   assert.match(css, /@media \(max-width: 700px\)/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
