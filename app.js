@@ -155,14 +155,14 @@ function cleanVault(value) {
 function setButtonBusy(button, busy, busyText = 'Working…') {
   if (!button) return;
   if (busy) {
-    button.dataset.originalText = button.textContent;
+    button.dataset.originalHtml = button.innerHTML;
     button.disabled = true;
     button.textContent = busyText;
   } else {
     button.disabled = false;
-    if (button.dataset.originalText) {
-      button.textContent = button.dataset.originalText;
-      delete button.dataset.originalText;
+    if (button.dataset.originalHtml) {
+      button.innerHTML = button.dataset.originalHtml;
+      delete button.dataset.originalHtml;
     }
   }
 }
@@ -390,7 +390,10 @@ function requestConfirmation({ title, message, acceptLabel = 'Continue', danger 
     dialog.addEventListener('close', finish, { once: true });
     $('confirm-cancel').onclick = () => dialog.close('cancel');
     accept.onclick = () => dialog.close('confirm');
-    dialog.addEventListener('cancel', () => dialog.close('cancel'), { once: true });
+    dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      dialog.close('cancel');
+    }, { once: true });
     dialog.showModal();
     $('confirm-cancel').focus();
   });
