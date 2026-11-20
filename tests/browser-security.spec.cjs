@@ -136,7 +136,7 @@ async function main() {
     await failedSavePage.locator('#item-content').fill('This should not appear as a saved entry.');
     await failedSavePage.locator('.share-toggle').click();
     await failedSavePage.locator('#item-form button[type="submit"]').click();
-    await failedSavePage.getByText('Browser storage could not save this change.').waitFor();
+    await failedSavePage.getByText('This device is low on browser storage. Free up space and try again.').waitFor();
     assert.equal(await failedSavePage.locator('.context-item').count(), 0, 'failed write must not commit entry in memory');
     assert.equal(await failedSavePage.locator('#item-name').inputValue(), 'Unsaved sample', 'failed save should preserve the draft for retry');
     await failedSaveContext.close();
