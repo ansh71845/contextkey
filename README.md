@@ -1,5 +1,7 @@
 # ContextKey — Local-First AI Context Wallet
 
+**Version:** 0.2 (experimental MVP)  
+
 **Your context. Your choice.** Keep useful background in an encrypted, on-device vault. Choose exactly what goes into each task-specific context pack.
 
 <https://ansh71845.github.io/contextkey/>
@@ -18,9 +20,10 @@ ContextKey keeps useful personal context in one place and lets you choose which 
 - Encrypt saved context in the browser using PBKDF2-SHA-256 and AES-256-GCM.
 - Save, edit, search, and delete context entries.
 - Keep each new entry private by default.
-- Select only approved entries for a task-specific context pack.
-- Preview the exact Markdown before copying or downloading it.
-- Download and restore an encrypted `.ckvault` backup.
+- Select only approved entries for a task-specific context pack. Packs start empty; nothing is included until you select it.
+- Optionally add purpose-based suggestions, then review and clear selections before exporting.
+- Preview the exact Markdown and character count before copying or downloading it.
+- Verify an encrypted `.ckvault` backup before explicitly replacing the current vault.
 - Install as a PWA and use the app shell offline after the first successful visit.
 - No sign-in, server database, analytics, external JavaScript libraries, or AI API key.
 
@@ -31,8 +34,8 @@ The encryption API requires a secure browser origin. The simplest free route is 
 1. Open the [live ContextKey app](https://ansh71845.github.io/contextkey/) in Chrome on Android.
 2. Create your vault using a strong passphrase that you can remember. There is no password-reset service.
 3. Add a few non-sensitive sample entries. Keep private entries marked private.
-4. Use **Build a context pack** to select only the entries needed for a task.
-5. Review the Markdown before copying or downloading it.
+4. In **Context pack**, select only the approved entries needed for that task. The pack starts empty; **Add suggested** is optional and does not export anything.
+5. Review the exact Markdown preview and character count before copying or downloading it.
 6. Optionally choose **Add to Home screen** from Chrome's menu.
 
 To inspect the source, browse this repository. Do not put your personal context, exported packs, or `.ckvault` backups in the repository.
@@ -43,7 +46,7 @@ GitHub Pages hosts the app files, not your vault. The app does not send your ent
 
 ## Backup and device changes
 
-Use **Encrypted backup** regularly. The `.ckvault` file is encrypted and can be restored from **Restore backup** on another browser/device. You must still know the original passphrase. There is no password-reset service because there is no server holding your key.
+Use **Encrypted backup** regularly. The `.ckvault` file is encrypted and can be restored from **Restore backup** on another browser/device. ContextKey verifies the backup passphrase before it offers to replace the current vault. You must still know the original passphrase. There is no password-reset service because there is no server holding your key.
 
 ## Important privacy limits
 
