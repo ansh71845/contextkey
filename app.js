@@ -763,10 +763,12 @@ function renderPortableImport(items) {
       else idConflicts += 1;
       continue;
     }
-    if (existingFingerprints.has(portableEntryFingerprint(item))) {
+    const fingerprint = portableEntryFingerprint(item);
+    if (existingFingerprints.has(fingerprint)) {
       contentDuplicates += 1;
       continue;
     }
+    existingFingerprints.add(fingerprint);
     fresh.push(item);
   }
   pendingPortableItems = fresh;
