@@ -106,7 +106,7 @@ test('storage errors do not commit an unsaved entry to the in-memory vault', () 
 });
 
 test('service worker cache is versioned and offline HTML fallback is navigation-only', () => {
-  assert.match(sw, /contextkey-shell-v4/);
+  assert.match(sw, /contextkey-shell-v5/);
   assert.match(sw, /event\.request\.mode === 'navigate'/);
   const fetchHandler = sw.slice(sw.indexOf("self.addEventListener('fetch'"));
   assert.match(fetchHandler, /catch\(\(\) => caches\.match\('\.\/index\.html'\)\)/);
