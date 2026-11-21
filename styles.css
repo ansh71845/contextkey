@@ -885,3 +885,25 @@ button, input, select, textarea { font-size: 14px; }
   html { scroll-behavior:auto; }
   *, *::before, *::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
 }
+
+/* Universal Context Format v1 */
+.portable-tools{display:grid;gap:12px;margin:18px 0 15px;padding:16px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.portable-tools-copy{display:grid;gap:4px}
+.portable-tools-copy strong{color:var(--ink);font-size:13px;font-weight:650}
+.portable-tools-copy small,.portable-warning{color:var(--muted);font-size:11px;line-height:1.5}
+.portable-tools-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.portable-private-option{display:flex;align-items:center;gap:7px;margin-right:auto;color:var(--soft);font-size:11px}
+.portable-private-option input{accent-color:var(--green);width:16px;height:16px}
+.portable-warning{margin:0;padding-top:10px;border-top:1px solid var(--line)}
+.portable-import-card{width:min(100%,560px)}
+.portable-import-summary{margin:15px 0;padding:12px;border-radius:6px;background:var(--canvas);color:var(--ink);font-size:12px;line-height:1.5}
+.portable-import-selection{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:15px 0 8px;color:var(--ink);font-size:12px}
+.portable-import-selection>span{display:flex;gap:12px}
+.portable-import-list{display:grid;gap:7px;max-height:min(42vh,360px);overflow:auto;padding:2px}
+.portable-import-item{display:flex;align-items:flex-start;gap:10px;padding:11px;border:1px solid var(--line);border-radius:6px;cursor:pointer}
+.portable-import-item input{flex:0 0 auto;width:17px;height:17px;margin:2px 0 0;accent-color:var(--green)}
+.portable-import-item span{display:grid;gap:4px;min-width:0}
+.portable-import-item strong{color:var(--ink);font-size:12px;overflow-wrap:anywhere}
+.portable-import-item small{color:var(--muted);font-size:10px}
+.portable-import-empty{padding:18px 8px;color:var(--muted);font-size:12px;text-align:center}
+@media(max-width:520px){.portable-tools-actions{align-items:flex-start}.portable-private-option{flex-basis:100%}.portable-tools-actions .mini-button{flex:1}.portable-import-selection{align-items:flex-start}}

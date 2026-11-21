@@ -213,6 +213,15 @@
                   <label class="filter-wrap" for="library-filter"><span>FILTER</span><select id="library-filter"><option value="all">All entries</option><option value="private">Private</option><option value="shareable">Share-ready</option><option value="About">About me</option><option value="Goals">Goals</option><option value="Preferences">Preferences</option><option value="Skills">Skills & knowledge</option><option value="Projects">Projects</option><option value="Rules">Working rules</option></select></label>
                 </div>
               </div>
+              <div class="portable-tools">
+                <div class="portable-tools-copy"><strong>Portable context · JSON v1</strong><small>Move structured entries between ContextKey vaults.</small></div>
+                <div class="portable-tools-actions">
+                  <label class="portable-private-option"><input id="portable-include-private" type="checkbox"><span>Include private entries</span></label>
+                  <button id="portable-export" class="mini-button" type="button">Export JSON</button>
+                  <button id="portable-import" class="mini-button" type="button">Import JSON</button>
+                </div>
+                <p class="portable-warning">JSON exports are not encrypted. Private entries are excluded unless you explicitly include them. Use encrypted backup for a full protected copy.</p>
+              </div>
               <div id="context-list" class="context-list"></div>
               <div id="empty-library" class="empty-state"><span class="empty-icon" aria-hidden="true">＋</span><h3>Your library starts here</h3><p>Add one detail that makes future conversations more useful.</p><button class="button button-secondary" data-go="library" type="button">Create first entry</button></div>
             </div>
@@ -268,6 +277,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <input id="restore-file" type="file" accept=".ckvault,application/json" hidden>
+  <input id="portable-import-file" type="file" accept=".json,application/json" hidden>
 
   <dialog id="confirm-dialog" class="modal" aria-labelledby="confirm-title" aria-describedby="confirm-message">
     <div class="modal-card">
@@ -275,6 +285,20 @@
       <h2 id="confirm-title">Confirm this action</h2>
       <p id="confirm-message" class="modal-copy"></p>
       <div class="modal-actions"><button id="confirm-cancel" class="button button-secondary" type="button">Cancel</button><button id="confirm-accept" class="button button-danger" type="button">Continue</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="portable-import-dialog" class="modal" aria-labelledby="portable-import-title" aria-describedby="portable-import-summary">
+    <div class="modal-card portable-import-card">
+      <button id="portable-import-close" class="modal-close" type="button" aria-label="Close import preview">×</button>
+      <p class="eyebrow">PORTABLE CONTEXT · JSON V1</p>
+      <h2 id="portable-import-title">Review before importing</h2>
+      <p class="modal-copy">Only selected new entries will be added. Existing entries are never replaced. Imported entries are encrypted when saved to this vault.</p>
+      <p id="portable-import-summary" class="portable-import-summary"></p>
+      <div class="portable-import-selection"><strong>New entries</strong><span><button id="portable-select-all" class="text-button" type="button">Select all</button><button id="portable-select-none" class="text-button" type="button">Select none</button></span></div>
+      <div id="portable-import-list" class="portable-import-list"></div>
+      <p id="portable-import-error" class="error-message" role="alert" aria-live="polite"></p>
+      <div class="modal-actions"><button id="portable-import-cancel" class="button button-secondary" type="button">Cancel</button><button id="portable-import-confirm" class="button button-primary" type="button" disabled>Import selected</button></div>
     </div>
   </dialog>
 

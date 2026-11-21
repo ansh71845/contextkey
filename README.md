@@ -23,6 +23,8 @@ ContextKey keeps useful personal context in one place and lets you choose which 
 - Select only approved entries for a task-specific context pack. Packs start empty; nothing is included until you select it.
 - Optionally add purpose-based suggestions, then review and clear selections before exporting.
 - Preview the exact Markdown and character count before copying or downloading it.
+- Export a versioned ContextKey JSON file (v1) for manual portability. Share-ready entries are included by default; private entries require an explicit opt-in.
+- Preview JSON imports, select individual entries, detect duplicates and ID conflicts, and add imported entries without overwriting existing ones. Imported entries are encrypted when saved to the vault.
 - Verify an encrypted `.ckvault` backup before explicitly replacing the current vault.
 - Install as a PWA and use the app shell offline after the first successful visit.
 - No sign-in, server database, analytics, external JavaScript libraries, or AI API key.
@@ -43,6 +45,12 @@ To inspect the source, browse this repository. Do not put your personal context,
 ## Where your data lives
 
 GitHub Pages hosts the app files, not your vault. The app does not send your entries to GitHub or to a ContextKey server. The encrypted vault is saved in that browser's local storage. GitHub Pages may still log visitor IP addresses and standard web-request metadata for its own security and operations; 'local-first' means your vault content is not uploaded by this app, not that the hosting visit is invisible.
+
+## Portable context format v1
+
+The **Export JSON** action creates a plaintext `contextkey-context` document with `schemaVersion: 1`, an export timestamp, and structured entries (stable ID, category, title, content, shareability, creation time, and update time). Private entries are excluded unless **Include private entries** is explicitly checked. The file is not encrypted; treat it like a context pack and review it before moving or sharing it.
+
+Use **Import JSON** to validate a file and preview new entries, exact duplicates, content duplicates, and ID conflicts. Select the entries to add. Existing entries are never replaced. Imported records are encrypted when saved into the destination vault. The importer currently accepts up to 500 entries and 2 MiB per file. This is a ContextKey-to-ContextKey manual interchange format, not a universal AI-provider integration or an external standard yet.
 
 ## Backup and device changes
 

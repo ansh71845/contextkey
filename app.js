@@ -17,6 +17,7 @@ let pendingBackup = null;
 let restoreVerified = false;
 let restoreInProgress = false;
 let isSaving = false;
+let pendingPortableItems = [];
 
 const SECTION_ORDER = ['About', 'Goals', 'Preferences', 'Skills', 'Projects', 'Rules'];
 const SECTION_LABELS = {
@@ -672,6 +673,164 @@ function initPasswordToggles() {
     });
   });
 }
+
+const PORTABLE_FORMAT = 'contextkey-context';
+const PORTABLE_SCHEMA_VERSION = 1;
+const PORTABLE_MAX_BYTES = 2 * 1024 * 1024;
+const PORTABLE_MAX_ENTRIES = 500;
+
+function portableEntryFingerprint(item) {
+  return [item.section, item.title, item.content]
+    .map((value) => String(value).trim().toLocaleLowerCase())
+    .join('\u0000');
+}
+
+function makePortableDocument(includePrivate = false) {
+  const items = vault.items
+    .filter((item) => includePrivate || item.shareable)
+    .map((item) => ({
+      id: item.id, section: item.section, title: item.title, content: item.content,
+      shareable: item.shareable, createdAt: item.createdAt, updatedAt: item.updatedAt
+    }));
+  return { format: PORTABLE_FORMAT, schemaVersion: PORTABLE_SCHEMA_VERSION, exportedAt: new Date().toISOString(), items };
+}
+
+function exportPortableContext() {
+  if (!vault) return;
+  const document = makePortableDocument($('portable-include-private').checked);
+  downloadText('contextkey-context-v1-' + new Date().toISOString().slice(0, 10) + '.json',
+    JSON.stringify(document, null, 2), 'application/json');
+  showToast('Portable JSON exported: ' + document.items.length + ' entries.');
+}
+
+function validatePortableDocument(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      value.format !== PORTABLE_FORMAT || value.schemaVersion !== PORTABLE_SCHEMA_VERSION ||
+      typeof value.exportedAt !== 'string' || !Number.isFinite(Date.parse(value.exportedAt)) ||
+      !Array.isArray(value.items) || value.items.length > PORTABLE_MAX_ENTRIES) {
+    throw new Error('This is not a supported ContextKey context file.');
+  }
+  const allowedDocumentKeys = ['format', 'schemaVersion', 'exportedAt', 'items'];
+  if (Object.keys(value).some((key) => !allowedDocumentKeys.includes(key))) {
+    throw new Error('The context file contains unsupported fields.');
+  }
+  const seenIds = new Set();
+  const allowedItemKeys = ['id', 'section', 'title', 'content', 'shareable', 'createdAt', 'updatedAt'];
+  return value.items.map((item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item) ||
+        Object.keys(item).some((key) => !allowedItemKeys.includes(key)) ||
+        typeof item.id !== 'string' || !item.id.trim() || item.id.length > 100 ||
+        typeof item.section !== 'string' || !SECTION_ORDER.includes(item.section) ||
+        typeof item.title !== 'string' || !item.title.trim() || item.title.length > 70 ||
+        typeof item.content !== 'string' || !item.content.trim() || item.content.length > 1400 ||
+        typeof item.shareable !== 'boolean' ||
+        typeof item.createdAt !== 'string' || !Number.isFinite(Date.parse(item.createdAt)) ||
+        typeof item.updatedAt !== 'string' || !Number.isFinite(Date.parse(item.updatedAt))) {
+      throw new Error('Entry ' + (index + 1) + ' is invalid or exceeds the supported limits.');
+    }
+    if (seenIds.has(item.id)) throw new Error('The file contains duplicate entry IDs.');
+    seenIds.add(item.id);
+    return {
+      id: item.id, section: item.section, title: item.title.trim(), content: item.content.trim(),
+      shareable: item.shareable, createdAt: new Date(item.createdAt).toISOString(),
+      updatedAt: new Date(item.updatedAt).toISOString()
+    };
+  });
+}
+
+function closePortableImport() {
+  const dialog = $('portable-import-dialog');
+  if (dialog.open) dialog.close();
+  pendingPortableItems = [];
+  $('portable-import-list').replaceChildren();
+  $('portable-import-file').value = '';
+  $('portable-import-summary').textContent = '';
+  $('portable-import-error').textContent = '';
+  $('portable-import-confirm').disabled = true;
+}
+
+function renderPortableImport(items) {
+  const existingById = new Map(vault.items.map((item) => [item.id, item]));
+  const existingFingerprints = new Set(vault.items.map(portableEntryFingerprint));
+  const fresh = [];
+  let exactDuplicates = 0, contentDuplicates = 0, idConflicts = 0;
+  for (const item of items) {
+    const sameId = existingById.get(item.id);
+    if (sameId) {
+      const sameRecord = sameId.section === item.section && sameId.title === item.title &&
+        sameId.content === item.content && sameId.shareable === item.shareable;
+      if (sameRecord) exactDuplicates += 1;
+      else idConflicts += 1;
+      continue;
+    }
+    const fingerprint = portableEntryFingerprint(item);
+    if (existingFingerprints.has(fingerprint)) {
+      contentDuplicates += 1;
+      continue;
+    }
+    existingFingerprints.add(fingerprint);
+    fresh.push(item);
+  }
+  pendingPortableItems = fresh;
+  $('portable-import-summary').textContent = fresh.length + ' new · ' + exactDuplicates +
+    ' already present · ' + contentDuplicates + ' content duplicates · ' + idConflicts + ' ID conflicts (skipped).';
+  $('portable-import-list').innerHTML = fresh.length
+    ? fresh.map((item) => '<label class="portable-import-item"><input type="checkbox" data-import-id="' +
+      escapeHtml(item.id) + '" checked><span><strong>' + escapeHtml(item.title) + '</strong><small>' +
+      escapeHtml(SECTION_LABELS[item.section]) + ' · ' + (item.shareable ? 'Share-ready' : 'Private') +
+      '</small></span></label>').join('')
+    : '<p class="portable-import-empty">There are no new entries to import.</p>';
+  $('portable-import-confirm').disabled = fresh.length === 0;
+  $('portable-import-dialog').showModal();
+}
+
+async function previewPortableImport(file) {
+  if (!file) return;
+  try {
+    if (file.size > PORTABLE_MAX_BYTES) throw new Error('This context file is larger than the supported 2 MiB limit.');
+    const items = validatePortableDocument(JSON.parse(await file.text()));
+    renderPortableImport(items);
+  } catch (error) {
+    showToast(error.message || 'This context file could not be read.');
+    $('portable-import-file').value = '';
+  }
+}
+
+async function confirmPortableImport() {
+  if (!vault || !pendingPortableItems.length || isSaving) return;
+  const selected = new Set([...$('portable-import-list').querySelectorAll('[data-import-id]:checked')]
+    .map((input) => input.dataset.importId));
+  const additions = pendingPortableItems.filter((item) => selected.has(item.id));
+  if (!additions.length) {
+    $('portable-import-error').textContent = 'Select at least one new entry to import.';
+    return;
+  }
+  if (vault.items.length + additions.length > PORTABLE_MAX_ENTRIES) {
+    $('portable-import-error').textContent = 'This would exceed the 500-entry vault limit. Select fewer entries or remove existing entries first.';
+    return;
+  }
+  isSaving = true;
+  setButtonBusy($('portable-import-confirm'), true, 'Importing…');
+  $('portable-import-error').textContent = '';
+  try {
+    const nextVault = { version: 1, items: [...vault.items.map((item) => ({ ...item })), ...additions.map((item) => ({ ...item }))] };
+    await persistVault(nextVault);
+    vault = nextVault;
+    closePortableImport();
+    renderAll();
+    showToast(additions.length + ' entries imported into your encrypted vault.');
+  } catch (error) {
+    $('portable-import-error').textContent = storageErrorMessage(error, error.message || 'Could not import these entries.');
+  } finally {
+    isSaving = false;
+    setButtonBusy($('portable-import-confirm'), false);
+  }
+}
+
+function selectPortableImports(checked) {
+  $('portable-import-list').querySelectorAll('[data-import-id]').forEach((input) => { input.checked = checked; });
+}
+
 function init() {
   initPasswordToggles();
   let existing;
@@ -717,6 +876,15 @@ function init() {
   });
   $('lock-button').addEventListener('click', lockVault);
   $('item-form').addEventListener('submit', handleItemSubmit);
+  $('portable-export').addEventListener('click', exportPortableContext);
+  $('portable-import').addEventListener('click', () => $('portable-import-file').click());
+  $('portable-import-file').addEventListener('change', (event) => previewPortableImport(event.target.files[0]));
+  $('portable-import-confirm').addEventListener('click', confirmPortableImport);
+  $('portable-import-cancel').addEventListener('click', closePortableImport);
+  $('portable-import-close').addEventListener('click', closePortableImport);
+  $('portable-select-all').addEventListener('click', () => selectPortableImports(true));
+  $('portable-select-none').addEventListener('click', () => selectPortableImports(false));
+  $('portable-import-dialog').addEventListener('close', () => { if (pendingPortableItems.length) closePortableImport(); });
   $('cancel-edit').addEventListener('click', resetItemForm);
   $('search-items').addEventListener('input', renderLibrary);
   $('library-filter').addEventListener('change', renderLibrary);

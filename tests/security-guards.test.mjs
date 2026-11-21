@@ -106,7 +106,7 @@ test('storage errors do not commit an unsaved entry to the in-memory vault', () 
 });
 
 test('service worker cache is versioned and offline HTML fallback is navigation-only', () => {
-  assert.match(sw, /contextkey-shell-v4/);
+  assert.match(sw, /contextkey-shell-v5/);
   assert.match(sw, /event\.request\.mode === 'navigate'/);
   const fetchHandler = sw.slice(sw.indexOf("self.addEventListener('fetch'"));
   assert.match(fetchHandler, /catch\(\(\) => caches\.match\('\.\/index\.html'\)\)/);
@@ -159,4 +159,37 @@ test('entry editor exposes a live character count and imported vaults have a bou
 
 test('document head contains no literal escaped newlines before metadata tags', () => {
   assert.equal(html.includes(String.fromCharCode(92, 110) + '  <meta'), false);
+});
+
+test('portable context format v1 is versioned and excludes private entries unless explicitly included', () => {
+  assert.match(app, /PORTABLE_FORMAT = 'contextkey-context'/);
+  assert.match(app, /schemaVersion: PORTABLE_SCHEMA_VERSION/);
+  assert.match(app, /filter\(\(item\) => includePrivate \|\| item\.shareable\)/);
+  assert.match(html, /id="portable-include-private"/);
+  assert.match(html, /JSON exports are not encrypted/);
+});
+
+test('portable imports validate schema, size bounds, categories, timestamps, and unique IDs', () => {
+  assert.match(app, /PORTABLE_MAX_BYTES = 2 \* 1024 \* 1024/);
+  assert.match(app, /PORTABLE_MAX_ENTRIES = 500/);
+  assert.match(app, /SECTION_ORDER\.includes\(item\.section\)/);
+  assert.match(app, /seenIds\.has\(item\.id\)/);
+  assert.match(app, /item\.content\.length > 1400/);
+});
+
+test('portable import previews duplicates and ID conflicts without overwriting existing entries', () => {
+  assert.match(app, /exactDuplicates/);
+  assert.match(app, /contentDuplicates/);
+  assert.match(app, /idConflicts/);
+  assert.match(app, /existingById/);
+  assert.match(app, /pendingPortableItems\.filter/);
+  assert.match(html, /Existing entries are never replaced/);
+  assert.match(html, /id="portable-import-confirm"/);
+});
+
+test('portable import requires explicit item selection and confirmation', () => {
+  assert.match(html, /id="portable-select-all"/);
+  assert.match(html, /id="portable-select-none"/);
+  assert.match(app, /querySelectorAll\('\[data-import-id\]:checked'\)/);
+  assert.match(html, /Import selected/);
 });
