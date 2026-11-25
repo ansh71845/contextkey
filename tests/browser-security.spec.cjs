@@ -212,7 +212,7 @@ async function main() {
       await restorePage.locator('#restore-file').setInputFiles({
         name: invalidFile.name, mimeType: 'application/json', buffer: invalidFile.buffer
       });
-      await restorePage.getByText(/could not be read|unsupported or invalid|invalid or oversized|malformed encryption data/i).waitFor();
+      await restorePage.getByText(/not valid JSON|unsupported or invalid|invalid or oversized|malformed encryption data/i).waitFor();
       assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 1,
         invalidFile.name + ' must not change the current vault');
     }
