@@ -159,6 +159,14 @@ async function main() {
     assert.equal(await lockRacePage.locator('#app').isVisible(), false, 'the app must remain locked after the pending save completes');
     assert.equal(await lockRacePage.locator('#context-list .context-item').count(), 0,
       'a pending save must not repopulate decrypted entry content after locking');
+    const persistedTitles = await lockRacePage.evaluate(async (passphrase) => {
+      const envelope = JSON.parse(localStorage.getItem('contextkey.encrypted.v1') || 'null');
+      if (!envelope) return [];
+      const decrypted = await decryptVaultEnvelope(envelope, passphrase);
+      return decrypted.vault.items.map((item) => item.title);
+    }, PASS_A);
+    assert.ok(persistedTitles.includes('Saved during lock'),
+      'the pending save must finish writing its encrypted record before the session is unlocked');
     await lockRacePage.locator('#unlock-pass').fill(PASS_A);
     await lockRacePage.locator('#unlock-vault').click();
     await lockRacePage.locator('#app').waitFor({ state: 'visible' });
