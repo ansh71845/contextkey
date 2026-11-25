@@ -714,6 +714,7 @@ async function verifyBackup() {
     $('restore-copy').textContent = 'The passphrase is correct. Confirm only if you intend to replace the vault on this device.';
     $('confirm-restore').focus();
   } catch (error) {
+    $('restore-passphrase').value = '';
     $('restore-error').textContent = error.name === 'OperationError'
       ? 'That passphrase did not unlock this backup.'
       : (error.message || 'Could not verify this backup.');
