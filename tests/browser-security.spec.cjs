@@ -48,7 +48,16 @@ async function verifyDataIntegrityHelpers(page) {
   }, now);
   assert.equal(valid.count, 2, 'strict backup validation must retain all valid entries');
   assert.equal(valid.content, 'Preserve every character. ', 'backup validation must preserve content exactly');
-  assert.equal(valid.idsDiffer, true);
+
+  const markdown = await page.evaluate(() => parseMarkdownMemory(
+    'Intro text before the first heading.\\n\\n# Profile\\nA profile detail.\\n\\n```md\\n## This heading belongs to code\\n```\\n\\n## Project\\nA project detail.',
+    'notes.md'
+  ).map((entry) => ({ title: entry.title, content: entry.content })));
+  assert.equal(markdown.length, 3, 'Markdown preamble and both real headings should become entries');
+  assert.equal(markdown[0].title, 'Introduction');
+  assert.match(markdown[0].content, /Intro text before the first heading/);
+  assert.match(markdown[1].content, /## This heading belongs to code/, 'headings inside fenced code must remain content');
+  assert.equal(markdown[2].title, 'Project');
 
   const duplicateIds = await page.evaluate((timestamp) => {
     try {
