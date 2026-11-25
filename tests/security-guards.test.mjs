@@ -45,7 +45,7 @@ test('locking removes decrypted DOM content and clears local editing state', () 
     assert.ok(clear.includes(id), `lock cleanup must clear ${id}`);
   }
   assert.match(clear, /item-form.*reset/s);
-  assert.match(app, /function lockVault\(\)\s*\{\s*clearSession\(\)/);
+  assert.match(app, /function lockVault\(\)\s*\{\s*if \(isSaving\)/);\n  assert.match(app, /lockRequested = true/);\n  assert.match(app, /if \(lockRequested\) lockVault\(\)/);
 });
 
 test('saves encrypt the proposed vault before committing it to in-memory state', () => {
