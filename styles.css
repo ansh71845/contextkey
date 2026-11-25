@@ -927,6 +927,7 @@ img,svg,video,canvas{max-width:100%}
 .legal-footer-links a{color:var(--muted);font-size:11px;text-decoration:underline;text-underline-offset:3px}
 .legal-footer-links a:hover{color:var(--ink)}
 @media(max-width:700px){
+ .main-layout{position:relative}
  .mobile-menu-toggle{display:inline-flex}
  .topbar{position:relative;z-index:30}
  .topbar-actions{margin-left:auto}
