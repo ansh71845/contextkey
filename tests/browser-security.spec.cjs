@@ -14,8 +14,15 @@ async function createVault(page, passphrase) {
   await page.locator('#app').waitFor({ state: 'visible' });
 }
 
+async function navigate(page, view) {
+  const menu = page.locator('#mobile-menu-toggle');
+  if (await menu.isVisible() && await menu.getAttribute('aria-expanded') !== 'true') await menu.click();
+  await page.locator('[data-view="' + view + '"]').click();
+  if (await menu.isVisible()) assert.equal(await menu.getAttribute('aria-expanded'), 'false', 'mobile menu should close after navigation');
+}
+
 async function addEntry(page, title, content, shareable) {
-  await page.locator('[data-view="library"]').click();
+  await navigate(page, 'library');
   await page.locator('#item-name').fill(title);
   await page.locator('#item-content').fill(content);
   assert.equal(await page.locator('#content-count').innerText(), `${content.length} / 1,400`);
@@ -41,7 +48,7 @@ async function main() {
     assert.equal(await packPage.locator('.context-item').count(), 1, 'share-ready filter should show only approved entries');
     await packPage.getByText('Shareable sample', { exact: true }).waitFor();
     await packPage.locator('#library-filter').selectOption('all');
-    await packPage.locator('[data-view="share"]').click();
+    await navigate(packPage, 'share');
 
     assert.equal(await packPage.locator('#pack-preview').inputValue(), '', 'context pack must start empty');
     assert.equal(await packPage.locator('#pack-items [data-pack-id]').count(), 1, 'private entries must not appear in the picker');
@@ -77,7 +84,7 @@ async function main() {
     const backupPage = await backupContext.newPage();
     await createVault(backupPage, PASS_B);
     await addEntry(backupPage, 'Restored sample', 'Only the verified backup should replace the vault.', true);
-    await backupPage.locator('button[data-view="overview"]').click();
+    await navigate(backupPage, 'overview');
     const [backupDownload] = await Promise.all([
       backupPage.waitForEvent('download'),
       backupPage.locator('#backup-button').click()
@@ -112,7 +119,7 @@ async function main() {
     await restorePage.locator('#unlock-pass').fill(PASS_B);
     await restorePage.locator('#unlock-vault').click();
     await restorePage.locator('#app').waitFor({ state: 'visible' });
-    await restorePage.locator('[data-view="library"]').click();
+    await navigate(restorePage, 'library');
     assert.equal(await restorePage.getByText('Restored sample', { exact: true }).count(), 1);
     assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 0);
     await restoreContext.close();
@@ -140,7 +147,7 @@ async function main() {
         return original.call(this, key, value);
       };
     });
-    await failedSavePage.locator('[data-view="library"]').click();
+    await navigate(failedSavePage, 'library');
     await failedSavePage.locator('#item-name').fill('Unsaved sample');
     await failedSavePage.locator('#item-content').fill('This should not appear as a saved entry.');
     await failedSavePage.locator('.share-toggle').click();
@@ -165,11 +172,27 @@ async function main() {
     const responsiveContext = await browser.newContext({ viewport: { width: 360, height: 780 } });
     const responsivePage = await responsiveContext.newPage();
     await createVault(responsivePage, PASS_A);
+    assert.equal(await responsivePage.locator('#mobile-menu-toggle').isVisible(), true, 'mobile menu control should be visible at phone widths');
+    assert.equal(await responsivePage.locator('#mobile-menu-toggle').getAttribute('aria-expanded'), 'false');
+    await responsivePage.locator('#mobile-menu-toggle').click();
+    assert.equal(await responsivePage.locator('#mobile-menu-toggle').getAttribute('aria-expanded'), 'true');
+    await responsivePage.locator('#mobile-menu-toggle').press('Escape');
+    assert.equal(await responsivePage.locator('#mobile-menu-toggle').getAttribute('aria-expanded'), 'false', 'Escape should close the mobile menu');
+    await navigate(responsivePage, 'library');
     const mobileWidth = await responsivePage.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
       content: document.documentElement.scrollWidth
     }));
     assert.ok(mobileWidth.content <= mobileWidth.viewport, 'mobile app must not overflow horizontally');
+    await responsivePage.goto(BASE_URL + 'privacy.html');
+    assert.match(await responsivePage.title(), /Privacy Policy/);
+    assert.ok(await responsivePage.locator('meta[name="description"]').getAttribute('content'));
+    const legalWidth = await responsivePage.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
+    assert.ok(legalWidth.content <= legalWidth.viewport, 'privacy page must not overflow horizontally');
+    await responsivePage.goto(BASE_URL + 'terms.html');
+    assert.match(await responsivePage.title(), /Terms and Conditions/);
+    await responsivePage.goto(BASE_URL + '404.html');
+    assert.match(await responsivePage.title(), /Page Not Found/);
     await responsivePage.setViewportSize({ width: 1440, height: 900 });
     const desktopWidth = await responsivePage.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
