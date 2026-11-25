@@ -110,7 +110,7 @@ test('service worker cache is versioned and offline HTML fallback is navigation-
   assert.match(sw, /contextkey-shell-v10/);
   assert.match(sw, /event\.request\.mode === 'navigate'/);
   const fetchHandler = sw.slice(sw.indexOf("self.addEventListener('fetch'"));
-  assert.match(fetchHandler, /catch\(\(\) => caches\.match\(event\.request\)\.then\(\(cached\) => cached \|\| caches\.match\('\.\/index\.html'\)\)\)/);
+  assert.match(fetchHandler, /if \(event\.request\.mode === 'navigate'\) return caches\.match\('\.\/index\.html'\)/);
 });
 
 test('design system includes responsive layout, visible focus and reduced-motion support', () => {
