@@ -21,6 +21,15 @@ function contrastRatio(foreground, background) {
   return (values[0] + 0.05) / (values[1] + 0.05);
 }
 
+test('secondary GitHub Pages origin warns about separate browser vault storage', () => {
+  assert.match(html, /id="origin-notice"/);
+  assert.match(html, /separate browser storage from the primary Vercel app/);
+  assert.match(html, /export an encrypted backup before switching sites/);
+  assert.match(html, /https:\/\/contextkey-security-preview\.vercel\.app\//);
+  assert.match(app, /window\.location\.hostname !== 'ansh71845\.github\.io'/);
+  assert.match(css, /\.origin-notice\s*\{/);
+});
+
 test('vault envelopes use the supported PBKDF2 and AES-GCM format', () => {
   assert.match(app, /PBKDF2_ITERATIONS = 310000/);
   assert.match(app, /PBKDF2-SHA256/);
