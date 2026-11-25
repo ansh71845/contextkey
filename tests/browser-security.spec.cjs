@@ -196,6 +196,24 @@ async function main() {
     await createVault(restorePage, PASS_A);
     await addEntry(restorePage, 'Current sample', 'This entry must survive a rejected restore.', true);
 
+    await restorePage.locator('#restore-file').setInputFiles({
+      name: 'invalid-json.ckvault',
+      mimeType: 'application/json',
+      buffer: Buffer.from('{not-json')
+    });
+    await restorePage.getByText(/Unexpected token|JSON|valid/i).waitFor();
+    assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 1,
+      'invalid JSON must not alter the existing vault');
+
+    await restorePage.locator('#restore-file').setInputFiles({
+      name: 'unsupported-format.ckvault',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({ format: 'other', version: 99 }))
+    });
+    await restorePage.getByText('This backup uses an unsupported or invalid encryption format.').waitFor();
+    assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 1,
+      'unsupported backup metadata must not alter the existing vault');
+
     const malformedBackup = await restorePage.evaluate(async (passphrase) => {
       const salt = crypto.getRandomValues(new Uint8Array(16));
       const key = await deriveKey(passphrase, salt);
@@ -235,6 +253,19 @@ async function main() {
     await restorePage.locator('#verify-backup').click();
     await restorePage.locator('#restore-confirm-step').waitFor({ state: 'visible' });
     await restorePage.getByText('This encrypted backup contains 1 entry.').waitFor();
+
+    await restorePage.evaluate(() => {
+      window.__originalStorageSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (key === 'contextkey.encrypted.v1') throw new DOMException('Storage full', 'QuotaExceededError');
+        return window.__originalStorageSetItem.call(this, key, value);
+      };
+    });
+    await restorePage.locator('#confirm-restore').click();
+    await restorePage.getByText(/low on browser storage|could not restore this backup/i).waitFor();
+    assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 1,
+      'failed storage write must leave the current vault in memory');
+    await restorePage.evaluate(() => { Storage.prototype.setItem = window.__originalStorageSetItem; });
     await restorePage.locator('#confirm-restore').click();
     await restorePage.locator('#gate').waitFor({ state: 'visible' });
     await restorePage.locator('#unlock-pass').fill(PASS_B);
