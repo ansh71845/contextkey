@@ -6,7 +6,9 @@
 
 <https://contextkey-security-preview.vercel.app/>
 
-**Try the live app:** open the link above in Chrome. No account or AI API key is required. Create a vault, add a small sample entry, and build a context pack. On Android, use Chrome's **Add to Home screen** option if you want an app-like shortcut.\n\n**GitHub Pages deployment:** <https://ansh71845.github.io/contextkey/> is also available. Each hostname has separate browser storage, so a vault created on one site will not automatically appear on the other. Use an encrypted backup and restore to move between them.
+**Try the live app:** open the link above in Chrome. No account or AI API key is required. Create a vault, add a small sample entry, and build a context pack. On Android, use Chrome's **Add to Home screen** option if you want an app-like shortcut.
+
+**GitHub Pages deployment:** <https://ansh71845.github.io/contextkey/> is also available. Each hostname has separate browser storage, so a vault created on one site will not automatically appear on the other. Use an encrypted backup and restore to move between them.
 
 > **Experimental MVP:** ContextKey is an early prototype, not a professionally audited security product. Test it with non-sensitive sample information only.
 
