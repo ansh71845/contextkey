@@ -207,3 +207,13 @@ test('Markdown and text imports are local, bounded, editable, selectable, and pr
   assert.match(app, /await persistVault\(nextVault\)/);
   assert.match(sw, /contextkey-shell-v6/);
 });
+
+
+test('release foundation includes mobile navigation, legal links, favicon metadata, and overflow guard', () => {
+ assert.match(html,/id="mobile-menu-toggle"/); assert.match(html,/id="workspace-navigation"/);
+ assert.match(html,/href="\.\/privacy\.html"/); assert.match(html,/href="\.\/terms\.html"/);
+ assert.match(html,/rel="apple-touch-icon"/); assert.match(app,/function closeMobileMenu\(/);
+ assert.match(app,/event\.key === 'Escape'/); assert.match(css,/overflow-x:hidden/);
+ assert.match(workflow,/privacy\.html terms\.html 404\.html legal\.css legal\.js/);
+ assert.match(sw,/contextkey-shell-v7/);
+});
