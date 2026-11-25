@@ -52,7 +52,7 @@ test('Pages publishes only the explicit public runtime allowlist', () => {
 
 test('Pages upload and deployment are isolated to separate jobs with an artifact-visibility gate', () => {
   assert.match(pages, /jobs:\s+build:[\s\S]*?upload-pages-artifact/);
-  assert.match(pages, /deploy:\s+\n\s+needs: build/);
+  assert.match(pages, /deploy:\s*[\\r\\n]+\\s*needs: build/);
   assert.match(pages, /Wait for uploaded Pages artifact to become visible/);
   assert.match(pages, /actions\/runs\/\$\{GITHUB_RUN_ID\}\/artifacts/);
   assert.match(pages, /select\(.name == "github-pages" and .expired == false\)/);
