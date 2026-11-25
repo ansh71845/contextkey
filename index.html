@@ -14,6 +14,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self';">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
   <title>ContextKey — your context, on your terms</title>
 </head>
@@ -93,6 +94,7 @@
         </span>
         <span>ContextKey</span>
       </a>
+      <button id="mobile-menu-toggle" class="mobile-menu-toggle" type="button" aria-controls="workspace-navigation" aria-expanded="false" aria-label="Open navigation menu"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/></svg><span>Menu</span></button>
       <div class="topbar-actions">
         <span class="device-status"><span class="status-dot" aria-hidden="true"></span><span>Stored on this device</span></span>
         <button id="lock-button" class="lock-button" type="button" aria-label="Lock vault" title="Lock vault">
@@ -103,7 +105,7 @@
     </header>
 
     <main class="main-layout">
-      <aside class="side-panel">
+      <aside id="workspace-navigation" class="side-panel">
         <p class="nav-label">WORKSPACE</p>
         <nav class="nav-list" aria-label="Main navigation">
           <button class="nav-item active" data-view="overview" aria-current="page" type="button">
@@ -266,6 +268,7 @@
 
         <footer class="app-footer">
           <span>CONTEXTKEY <span aria-hidden="true">·</span> EXPERIMENTAL MVP</span>
+          <nav class="legal-footer-links" aria-label="Legal information"><a href="./privacy.html">Privacy</a><a href="./terms.html">Terms</a></nav>
           <div class="footer-actions">
             <button id="export-backup-footer" class="footer-button" type="button">Encrypted backup</button>
             <button id="restore-backup-footer" class="footer-button" type="button">Restore backup</button>
