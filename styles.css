@@ -552,7 +552,7 @@ svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColo
 
 
 
-/* ContextKey design system refresh — archival workspace, not a generic AI dashboard. */
+/* ContextKey design system refresh: archival workspace, not a generic AI dashboard. */
 :root {
   color-scheme: light;
   --canvas: #f2efe7;
