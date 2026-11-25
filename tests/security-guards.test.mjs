@@ -201,24 +201,24 @@ test('portable import requires explicit item selection and confirmation', () => 
 
 test('vault loading rejects malformed and oversized entries instead of silently dropping or truncating data', () => {
   const start = app.indexOf('function cleanVault(value)');
-  const end = app.indexOf('\\nfunction setButtonBusy', start);
+  const end = app.indexOf('\nfunction setButtonBusy', start);
   const loader = app.slice(start, end);
-  assert.match(loader, /value\\.version !== 1/);
-  assert.match(loader, /value\\.items\\.map/);
-  assert.doesNotMatch(loader, /value\\.items\\.filter/);
+  assert.match(loader, /value\.version !== 1/);
+  assert.match(loader, /value\.items\.map/);
+  assert.doesNotMatch(loader, /value\.items\.filter/);
   assert.match(loader, /No vault data was changed/);
-  assert.match(loader, /item\\.title\\.length > 70 \\|\\| item\\.content\\.length > 1400/);
-  assert.doesNotMatch(loader, /item\\.(?:title|content)\\.slice/);
+  assert.match(loader, /item\.title\.length > 70 \|\| item\.content\.length > 1400/);
+  assert.doesNotMatch(loader, /item\.(?:title|content)\.slice/);
 });
 
 test('Markdown import preserves preamble text and does not split headings inside fenced code', () => {
   const start = app.indexOf('function parseMarkdownMemory(text, filename)');
-  const end = app.indexOf('\\nfunction closeMarkdownImport()', start);
+  const end = app.indexOf('\nfunction closeMarkdownImport()', start);
   const parser = app.slice(start, end);
-  assert.match(parser, /const preamble = \\[\\]/);
-  assert.match(parser, /const fenceLine = line\\.match/);
+  assert.match(parser, /const preamble = \[\]/);
+  assert.match(parser, /const fenceLine = line\.match/);
   assert.match(parser, /title: 'Introduction'/);
-  assert.match(parser, /current\\.lines\\.push\\(line\\)/);
+  assert.match(parser, /current\.lines\.push\(line\)/);
 });
 
 test('Markdown and text imports are local, bounded, editable, selectable, and private by default', () => {
