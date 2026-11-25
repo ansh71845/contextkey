@@ -171,6 +171,19 @@ async function main() {
     await oversizedPage.getByText('This backup is larger than the supported 7 MiB limit.').waitFor();
     await oversizedContext.close();
 
+    const offlineContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const offlinePage = await offlineContext.newPage();
+    await createVault(offlinePage, PASS_A);
+    await offlinePage.evaluate(async () => { await navigator.serviceWorker.ready; });
+    await offlinePage.goto(BASE_URL + 'privacy.html');
+    await offlinePage.waitForFunction(() => navigator.serviceWorker.controller !== null);
+    await offlineContext.setOffline(true);
+    await offlinePage.reload();
+    assert.match(await offlinePage.title(), /Privacy Policy/, 'offline privacy navigation must not be replaced by the app shell');
+    await offlinePage.goto(BASE_URL);
+    assert.match(await offlinePage.title(), /ContextKey/, 'the offline app entry point must remain intact');
+    await offlineContext.close();
+
     const responsiveContext = await browser.newContext({ viewport: { width: 360, height: 780 } });
     const responsivePage = await responsiveContext.newPage();
     await createVault(responsivePage, PASS_A);
