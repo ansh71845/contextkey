@@ -196,6 +196,32 @@ async function main() {
     await createVault(restorePage, PASS_A);
     await addEntry(restorePage, 'Current sample', 'This entry must survive a rejected restore.', true);
 
+    const invalidRestoreFiles = [
+      { name: 'invalid-json.ckvault', buffer: Buffer.from('{not valid json') },
+      { name: 'unsupported-version.ckvault', buffer: Buffer.from(JSON.stringify({
+        format: 'contextkey-vault', version: 99, kdf: 'PBKDF2-SHA256',
+        iterations: 310000, cipher: 'AES-256-GCM', salt: 'A'.repeat(24),
+        iv: 'A'.repeat(16), data: 'A'.repeat(24)
+      })) },
+      { name: 'corrupt-base64.ckvault', buffer: Buffer.from(JSON.stringify({
+        ...JSON.parse(backupBuffer.toString('utf8')),
+        data: '!' + JSON.parse(backupBuffer.toString('utf8')).data.slice(1)
+      })) }
+    ];
+    for (const invalidFile of invalidRestoreFiles) {
+      await restorePage.locator('#restore-file').setInputFiles({
+        name: invalidFile.name, mimeType: 'application/json', buffer: invalidFile.buffer
+      });
+      await restorePage.getByText(/could not be read|unsupported or invalid|invalid or oversized|malformed encryption data/i).waitFor();
+      assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 1,
+        invalidFile.name + ' must not change the current vault');
+    }
+    await restorePage.evaluate(() => {
+      let rejected = false;
+      try { decodeCanonicalBase64('Zh=='); } catch { rejected = true; }
+      if (!rejected) throw new Error('non-canonical base64 must be rejected');
+    });
+
     const malformedBackup = await restorePage.evaluate(async (passphrase) => {
       const salt = crypto.getRandomValues(new Uint8Array(16));
       const key = await deriveKey(passphrase, salt);
