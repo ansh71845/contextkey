@@ -220,7 +220,7 @@ test('locking waits for pending encrypted saves and then invalidates the decrypt
   assert.match(app, /function lockVault\(\)\s*\{\s*if \(isSaving\)/);
   assert.match(app, /lockRequested = true/);
   assert.match(app, /if \(lockRequested\) lockVault\(\)/);
-};
+});
 
 test('Markdown import preserves preamble text and does not split headings inside fenced code', () => {
   const start = app.indexOf('function parseMarkdownMemory(text, filename)');
