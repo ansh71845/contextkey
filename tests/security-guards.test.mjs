@@ -210,15 +210,17 @@ test('portable import requires explicit item selection and confirmation', () => 
 });
 
 
-test('vault loading rejects malformed and oversized entries instead of silently dropping or truncating data', () => {
-  const start = app.indexOf('function cleanVault(value)');
-  const end = app.indexOf('\nfunction setButtonBusy', start);
+test('backup loading rejects malformed and oversized entries instead of silently dropping or repairing them', () => {
+  const start = app.indexOf('function validateBackupVault(value)');
+  const end = app.indexOf('\nasync function decryptVaultEnvelope', start);
   const loader = app.slice(start, end);
   assert.match(loader, /value\.version !== 1/);
   assert.match(loader, /value\.items\.map/);
   assert.doesNotMatch(loader, /value\.items\.filter/);
   assert.match(loader, /No vault data was changed/);
-  assert.match(loader, /item\.title\.length > 70 \|\| item\.content\.length > 1400/);
+  assert.match(loader, /item\.title\.length > 70/);
+  assert.match(loader, /item\.content\.length > 1400/);
+  assert.match(loader, /ids\.has\(item\.id\)/);
   assert.doesNotMatch(loader, /item\.(?:title|content)\.slice/);
 });
 
