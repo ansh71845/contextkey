@@ -219,6 +219,7 @@
                   <label class="portable-private-option"><input id="portable-include-private" type="checkbox"><span>Include private entries</span></label>
                   <button id="portable-export" class="mini-button" type="button">Export JSON</button>
                   <button id="portable-import" class="mini-button" type="button">Import JSON</button>
+                  <button id="markdown-import" class="mini-button" type="button">Import notes</button>
                 </div>
                 <p class="portable-warning">JSON exports are not encrypted. Private entries are excluded unless you explicitly include them. Use encrypted backup for a full protected copy.</p>
               </div>
@@ -278,6 +279,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <input id="restore-file" type="file" accept=".ckvault,application/json" hidden>
   <input id="portable-import-file" type="file" accept=".json,application/json" hidden>
+  <input id="markdown-import-file" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden>
 
   <dialog id="confirm-dialog" class="modal" aria-labelledby="confirm-title" aria-describedby="confirm-message">
     <div class="modal-card">
@@ -299,6 +301,20 @@
       <div id="portable-import-list" class="portable-import-list"></div>
       <p id="portable-import-error" class="error-message" role="alert" aria-live="polite"></p>
       <div class="modal-actions"><button id="portable-import-cancel" class="button button-secondary" type="button">Cancel</button><button id="portable-import-confirm" class="button button-primary" type="button" disabled>Import selected</button></div>
+    </div>
+  </dialog>
+
+
+  <dialog id="markdown-import-dialog" class="modal" aria-labelledby="markdown-import-title" aria-describedby="markdown-import-summary">
+    <div class="modal-card portable-import-card markdown-import-card">
+      <button id="markdown-import-close" class="modal-close" type="button" aria-label="Close notes import preview">×</button>
+      <p class="eyebrow">LOCAL NOTES IMPORT</p>
+      <h2 id="markdown-import-title">Review extracted entries</h2>
+      <p class="modal-copy">Edit titles and content, then select what to add. Imported entries are private by default and encrypted when saved. The source file is read only in this browser.</p>
+      <p id="markdown-import-summary" class="portable-import-summary"></p>
+      <div id="markdown-import-list" class="portable-import-list markdown-import-list"></div>
+      <p id="markdown-import-error" class="error-message" role="alert" aria-live="polite"></p>
+      <div class="modal-actions"><button id="markdown-import-cancel" class="button button-secondary" type="button">Cancel</button><button id="markdown-import-confirm" class="button button-primary" type="button" disabled>Import selected</button></div>
     </div>
   </dialog>
 

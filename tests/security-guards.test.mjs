@@ -106,7 +106,7 @@ test('storage errors do not commit an unsaved entry to the in-memory vault', () 
 });
 
 test('service worker cache is versioned and offline HTML fallback is navigation-only', () => {
-  assert.match(sw, /contextkey-shell-v5/);
+  assert.match(sw, /contextkey-shell-v6/);
   assert.match(sw, /event\.request\.mode === 'navigate'/);
   const fetchHandler = sw.slice(sw.indexOf("self.addEventListener('fetch'"));
   assert.match(fetchHandler, /catch\(\(\) => caches\.match\('\.\/index\.html'\)\)/);
@@ -192,4 +192,18 @@ test('portable import requires explicit item selection and confirmation', () => 
   assert.match(html, /id="portable-select-none"/);
   assert.match(app, /querySelectorAll\('\[data-import-id\]:checked'\)/);
   assert.match(html, /Import selected/);
+});
+
+
+test('Markdown and text imports are local, bounded, editable, selectable, and private by default', () => {
+  assert.match(html, /id="markdown-import-file"/);
+  assert.match(html, /id="markdown-import-dialog"/);
+  assert.match(html, /id="markdown-import-confirm"/);
+  assert.match(app, /function parseMarkdownMemory\(/);
+  assert.match(app, /file\.size > 100 \* 1024/);
+  assert.match(app, /shareable: false/);
+  assert.match(app, /data-markdown-title/);
+  assert.match(app, /data-markdown-content/);
+  assert.match(app, /await persistVault\(nextVault\)/);
+  assert.match(sw, /contextkey-shell-v6/);
 });
