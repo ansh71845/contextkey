@@ -1062,6 +1062,7 @@ function init() {
     document.querySelectorAll('.restore-from-gate').forEach((button) => { button.disabled = true; });
     return;
   }
+  $('origin-notice').hidden = window.location.hostname !== 'ansh71845.github.io';
   showGate(existing ? 'unlock' : 'setup');
 
   $('create-vault').addEventListener('click', createVault);
