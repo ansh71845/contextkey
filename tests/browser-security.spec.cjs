@@ -146,7 +146,7 @@ async function main() {
     await lockRacePage.locator('#item-content').fill('The save must finish without restoring the unlocked session.');
     await lockRacePage.evaluate(() => {
       const originalPersist = persistVault;
-      window.persistVault = async (...args) => {
+      persistVault = async (...args) => {
         await new Promise((resolve) => setTimeout(resolve, 350));
         return originalPersist(...args);
       };
@@ -154,6 +154,8 @@ async function main() {
     await lockRacePage.locator('#item-form button[type="submit"]').click();
     await lockRacePage.waitForFunction(() => isSaving === true);
     await lockRacePage.locator('#lock-button').click();
+    assert.equal(await lockRacePage.locator('#app').isVisible(), true,
+      'the current save must finish before the vault transitions to its locked screen');
     await lockRacePage.locator('#gate').waitFor({ state: 'visible' });
     await lockRacePage.waitForTimeout(500);
     assert.equal(await lockRacePage.locator('#app').isVisible(), false, 'the app must remain locked after the pending save completes');
