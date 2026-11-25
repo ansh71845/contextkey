@@ -8,8 +8,8 @@ const PASS_B = 'contextkey-test-passphrase-B-2026';
 
 async function createVault(page, passphrase) {
   await page.goto(BASE_URL);
-  await page.locator('a[href="./privacy.html"]').waitFor({ state: 'visible' });
-  await page.locator('a[href="./terms.html"]').waitFor({ state: 'visible' });
+  await page.locator('a[href="./privacy.html"]').first().waitFor({ state: 'visible' });
+  await page.locator('a[href="./terms.html"]').first().waitFor({ state: 'visible' });
   await page.locator('#new-pass').fill(passphrase);
   await page.locator('#confirm-pass').fill(passphrase);
   await page.locator('#create-vault').click();
