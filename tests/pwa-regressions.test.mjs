@@ -41,7 +41,7 @@ test('online requests revalidate assets before using the offline cache', () => {
   const fetchHandler = sw.slice(sw.indexOf("self.addEventListener('fetch'"));
   assert.ok(fetchHandler.indexOf('fetch(event.request)') < fetchHandler.indexOf('caches.match(event.request)'));
   assert.match(fetchHandler, /\.catch\(\(\) => caches\.match\(event\.request\)/);
-  assert.match(sw, /contextkey-shell-v10/);
+  assert.match(sw, /contextkey-shell-v11/);
 });
 
 test('app explicitly checks for service worker updates and refreshes after controller changes', () => {
