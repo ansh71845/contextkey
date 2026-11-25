@@ -267,6 +267,14 @@ function lockVault() {
   clearSession();
   showGate('unlock');
 }
+function closeMobileMenu() {
+  const toggle = $('mobile-menu-toggle');
+  const navigation = $('workspace-navigation');
+  if (!toggle || !navigation) return;
+  navigation.classList.remove('is-open');
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-label', 'Open navigation menu');
+}
 function setView(name) {
   const allowed = ['overview', 'library', 'share'];
   if (!allowed.includes(name)) return;
@@ -281,6 +289,7 @@ function setView(name) {
     if (active) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
   });
+  closeMobileMenu();
   if (name === 'share') renderPackBuilder();
   window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
@@ -939,6 +948,7 @@ async function confirmMarkdownImport() {
 
 function init() {
   initPasswordToggles();
+  document.querySelectorAll('[data-current-year]').forEach((node) => { node.textContent = String(new Date().getFullYear()); });
   let existing;
   try {
     existing = localStorage.getItem(STORAGE_KEY);
@@ -981,6 +991,14 @@ function init() {
     }
   });
   $('lock-button').addEventListener('click', lockVault);
+  $('mobile-menu-toggle').addEventListener('click', () => {
+    const navigation = $('workspace-navigation');
+    const opening = !navigation.classList.contains('is-open');
+    navigation.classList.toggle('is-open', opening);
+    $('mobile-menu-toggle').setAttribute('aria-expanded', String(opening));
+    $('mobile-menu-toggle').setAttribute('aria-label', opening ? 'Close navigation menu' : 'Open navigation menu');
+  });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeMobileMenu(); });
   $('item-form').addEventListener('submit', handleItemSubmit);
   $('portable-export').addEventListener('click', exportPortableContext);
   $('portable-import').addEventListener('click', () => $('portable-import-file').click());
