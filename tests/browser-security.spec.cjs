@@ -193,6 +193,10 @@ async function main() {
     assert.match(await responsivePage.title(), /Terms and Conditions/);
     await responsivePage.goto(BASE_URL + '404.html');
     assert.match(await responsivePage.title(), /Page Not Found/);
+    await responsivePage.goto(BASE_URL);
+    await responsivePage.locator('#unlock-pass').fill(PASS_A);
+    await responsivePage.locator('#unlock-vault').click();
+    await responsivePage.locator('#app').waitFor({ state: 'visible' });
     await responsivePage.setViewportSize({ width: 1440, height: 900 });
     const desktopWidth = await responsivePage.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
