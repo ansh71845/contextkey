@@ -125,7 +125,7 @@ function showGate(mode, error = '') {
   $('setup-fields').hidden = mode !== 'setup';
   $('unlock-fields').hidden = mode !== 'unlock';
   $('gate-error').textContent = error;
-  $('gate-title').innerHTML = mode === 'setup' ? 'Create your vault.<br><em>Keep it yours.</em>' : 'Your context.<br><em>Your choice.</em>';
+  $('gate-title').innerHTML = mode === 'setup' ? 'Create your<br><em>context vault.</em>' : 'Unlock your<br><em>context vault.</em>';
   if (mode === 'unlock') $('unlock-pass').focus();
   if (mode === 'setup') $('new-pass').focus();
 }
