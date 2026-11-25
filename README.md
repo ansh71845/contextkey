@@ -75,7 +75,7 @@ For local testing, serve this folder at `http://127.0.0.1:4173` (or another secu
 
 ```sh
 node --check app.js
-node --test tests/security-guards.test.mjs
+node --test tests/*.test.mjs
 node tests/browser-security.spec.cjs
 ```
 

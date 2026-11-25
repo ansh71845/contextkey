@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'contextkey-shell-v7';
+const CACHE_NAME = 'contextkey-shell-v8';
 const APP_FILES = [
   './',
   './index.html',
@@ -43,7 +43,7 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           if (response.ok) {
             const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', copy));
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
           }
           return response;
         })

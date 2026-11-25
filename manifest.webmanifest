@@ -1,6 +1,6 @@
 {
   "id": "./",
-  "name": "ContextKey — Local Context Wallet",
+  "name": "ContextKey: Local Context Wallet",
   "short_name": "ContextKey",
   "description": "A private, local-first place to organise useful context and choose exactly what you share.",
   "start_url": "./",
