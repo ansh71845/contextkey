@@ -217,12 +217,30 @@ async function main() {
     await responsivePage.locator('#unlock-pass').fill(PASS_A);
     await responsivePage.locator('#unlock-vault').click();
     await responsivePage.locator('#app').waitFor({ state: 'visible' });
-    await responsivePage.setViewportSize({ width: 1440, height: 900 });
-    const desktopWidth = await responsivePage.evaluate(() => ({
-      viewport: document.documentElement.clientWidth,
-      content: document.documentElement.scrollWidth
-    }));
-    assert.ok(desktopWidth.content <= desktopWidth.viewport, 'desktop app must not overflow horizontally');
+
+    const responsiveWidths = [320, 360, 390, 430, 700, 701, 768, 980, 1024, 1440];
+    for (const width of responsiveWidths) {
+      await responsivePage.setViewportSize({ width, height: 900 });
+      const dimensions = await responsivePage.evaluate(() => ({
+        viewport: document.documentElement.clientWidth,
+        content: document.documentElement.scrollWidth
+      }));
+      assert.ok(dimensions.content <= dimensions.viewport,
+        'app must not overflow horizontally at ' + width + 'px');
+      assert.equal(await responsivePage.locator('#mobile-menu-toggle').isVisible(), width <= 700,
+        'mobile menu visibility must switch at the documented breakpoint (' + width + 'px)');
+      for (const view of ['overview', 'library', 'share']) {
+        await navigate(responsivePage, view);
+        const viewDimensions = await responsivePage.evaluate(() => ({
+          viewport: document.documentElement.clientWidth,
+          content: document.documentElement.scrollWidth
+        }));
+        assert.ok(viewDimensions.content <= viewDimensions.viewport,
+          view + ' must not overflow horizontally at ' + width + 'px');
+      }
+    }
+    await responsivePage.locator('.topbar .brand').click();
+    await responsivePage.locator('#view-overview').waitFor({ state: 'visible' });
     await responsiveContext.close();
 
     process.stdout.write('ContextKey browser checks passed: explicit sharing, preview, export, lock cleanup, backup verification, restore safety, blocked storage, failed-write rollback, size limits and responsive layout.\n');
