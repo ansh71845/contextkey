@@ -34,6 +34,61 @@ async function addEntry(page, title, content, shareable) {
   assert.equal(await page.locator('#content-count').innerText(), '0 / 1,400');
 }
 
+async function verifyDataIntegrityHelpers(page) {
+  const normalized = await page.evaluate(() => {
+    const now = new Date().toISOString();
+    const result = cleanVault({
+      version: 1,
+      items: [
+        { id: 'duplicate-id', section: 'Unknown category', title: 'Legacy note', content: 'Preserve every character. ', shareable: 'yes', createdAt: 'invalid-date', updatedAt: 'invalid-date' },
+        { id: 'duplicate-id', section: 'Goals', title: 'Second note', content: 'Keep this entry too.', shareable: true, createdAt: now, updatedAt: now }
+      ]
+    });
+    return {
+      count: result.items.length,
+      firstContent: result.items[0].content,
+      firstSection: result.items[0].section,
+      firstShareable: result.items[0].shareable,
+      idsDiffer: result.items[0].id !== result.items[1].id
+    };
+  });
+  assert.equal(normalized.count, 2, 'vault normalization must retain every valid entry');
+  assert.equal(normalized.firstContent, 'Preserve every character. ', 'vault normalization must not truncate or trim saved content');
+  assert.equal(normalized.firstSection, 'About', 'unknown legacy categories should fall back safely');
+  assert.equal(normalized.firstShareable, false, 'unknown sharing states must default to private');
+  assert.equal(normalized.idsDiffer, true, 'duplicate IDs must be repaired without dropping entries');
+
+  const malformed = await page.evaluate(() => {
+    try {
+      cleanVault({ version: 1, items: [{ id: 'valid', title: 'Valid', content: 'Keep me' }, null] });
+      return 'accepted';
+    } catch (error) {
+      return error.message;
+    }
+  });
+  assert.match(malformed, /Entry 2 is malformed\. No vault data was changed/);
+
+  const oversized = await page.evaluate(() => {
+    try {
+      cleanVault({ version: 1, items: [{ id: 'long', title: 'Valid', content: 'x'.repeat(1401) }] });
+      return 'accepted';
+    } catch (error) {
+      return error.message;
+    }
+  });
+  assert.match(oversized, /exceeds the supported title or content limit/);
+
+  const markdown = await page.evaluate(() => parseMarkdownMemory(
+    'Intro text before the first heading.\\n\\n# Profile\\nA profile detail.\\n\\n```md\\n## This heading belongs to code\\n```\\n\\n## Project\\nA project detail.',
+    'notes.md'
+  ).map((entry) => ({ title: entry.title, content: entry.content })));
+  assert.equal(markdown.length, 3, 'Markdown preamble and both real headings should become entries');
+  assert.equal(markdown[0].title, 'Introduction');
+  assert.match(markdown[0].content, /Intro text before the first heading/);
+  assert.match(markdown[1].content, /## This heading belongs to code/, 'headings inside fenced code must remain content');
+  assert.equal(markdown[2].title, 'Project');
+}
+
 async function main() {
   const browser = await chromium.launch({ headless: true });
   try {
@@ -41,6 +96,7 @@ async function main() {
     const packContext = await browser.newContext({ ...mobile, acceptDownloads: true });
     const packPage = await packContext.newPage();
     await createVault(packPage, PASS_A);
+    await verifyDataIntegrityHelpers(packPage);
     await addEntry(packPage, 'Shareable sample', 'This text is approved for export.', true);
     await addEntry(packPage, 'Private sample', 'This text must stay private.', false);
     await packPage.locator('#library-filter').selectOption('private');
@@ -100,6 +156,30 @@ async function main() {
     const restorePage = await restoreContext.newPage();
     await createVault(restorePage, PASS_A);
     await addEntry(restorePage, 'Current sample', 'This entry must survive a rejected restore.', true);
+
+    const malformedBackup = await restorePage.evaluate(async (passphrase) => {
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const key = await deriveKey(passphrase, salt);
+      return JSON.stringify(await encryptObject({
+        version: 1,
+        items: [
+          { id: 'valid-entry', section: 'About', title: 'Valid backup entry', content: 'This content must remain intact.', shareable: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          null
+        ]
+      }, key, salt));
+    }, PASS_B);
+    await restorePage.locator('#restore-file').setInputFiles({
+      name: 'malformed-but-encrypted.ckvault',
+      mimeType: 'application/json',
+      buffer: Buffer.from(malformedBackup)
+    });
+    await restorePage.locator('#restore-dialog').waitFor({ state: 'visible' });
+    await restorePage.locator('#restore-passphrase').fill(PASS_B);
+    await restorePage.locator('#verify-backup').click();
+    await restorePage.getByText('Entry 2 is malformed. No vault data was changed.').waitFor();
+    assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 1,
+      'malformed encrypted backup must not change the current vault');
+    await restorePage.locator('#cancel-restore').click();
 
     await restorePage.locator('#restore-file').setInputFiles({
       name: 'contextkey-test.ckvault',
