@@ -107,10 +107,10 @@ test('storage errors do not commit an unsaved entry to the in-memory vault', () 
 });
 
 test('service worker cache is versioned and offline HTML fallback is navigation-only', () => {
-  assert.match(sw, /contextkey-shell-v9/);
+  assert.match(sw, /contextkey-shell-v10/);
   assert.match(sw, /event\.request\.mode === 'navigate'/);
   const fetchHandler = sw.slice(sw.indexOf("self.addEventListener('fetch'"));
-  assert.match(fetchHandler, /catch\(\(\) => caches\.match\(event\.request\)\.then\(\(cached\) => cached \|\| caches\.match\('\.\/index\.html'\)\)\)/);
+  assert.match(fetchHandler, /if \(event\.request\.mode === 'navigate'\) return caches\.match\('\.\/index\.html'\)/);
 });
 
 test('design system includes responsive layout, visible focus and reduced-motion support', () => {
@@ -209,7 +209,7 @@ test('Markdown and text imports are local, bounded, editable, selectable, and pr
   assert.match(app, /data-markdown-title/);
   assert.match(app, /data-markdown-content/);
   assert.match(app, /await persistVault\(nextVault\)/);
-  assert.match(sw, /contextkey-shell-v9/);
+  assert.match(sw, /contextkey-shell-v10/);
 });
 
 
@@ -219,7 +219,7 @@ test('release foundation includes mobile navigation, legal links, favicon metada
  assert.match(html,/rel="apple-touch-icon"/); assert.match(app,/function closeMobileMenu\(/);
  assert.match(app,/event\.key === 'Escape'/); assert.match(css,/overflow-x:hidden/);
  assert.match(workflow,/privacy\.html terms\.html 404\.html legal\.css legal\.js/);
- assert.match(sw,/contextkey-shell-v9/);
+ assert.match(sw,/contextkey-shell-v10/);
 });
 
 

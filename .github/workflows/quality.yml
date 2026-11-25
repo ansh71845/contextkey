@@ -23,6 +23,10 @@ jobs:
         with:
           node-version: 22
           package-manager-cache: false
+      - name: Install ESLint
+        run: npm install --no-save --no-package-lock eslint@10.15.0 globals@17.14.0
+      - name: Lint application JavaScript
+        run: npx eslint app.js sw.js legal.js
       - name: Check JavaScript syntax
         run: |
           node --check app.js
