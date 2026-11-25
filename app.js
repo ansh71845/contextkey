@@ -17,6 +17,8 @@ let pendingBackup = null;
 let restoreVerified = false;
 let restoreInProgress = false;
 let isSaving = false;
+let lockRequested = false;
+let sessionGeneration = 0;
 let pendingPortableItems = [];
 let pendingMarkdownItems = [];
 
@@ -142,26 +144,49 @@ function newItemId() {
   return `item-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 function cleanVault(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value) || !Array.isArray(value.items)) {
-    throw new Error('This backup does not contain a valid ContextKey vault.');
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      value.version !== 1 || !Array.isArray(value.items)) {
+    throw new Error('This backup does not contain a supported ContextKey vault. No vault data was changed.');
   }
   if (value.items.length > 500) {
-    throw new Error('This vault contains more than the supported 500 entries.');
+    throw new Error('This vault contains more than the supported 500 entries. No vault data was changed.');
   }
-  return {
-    version: 1,
-    items: value.items.filter((item) => item && typeof item === 'object' && !Array.isArray(item) &&
-      typeof item.title === 'string' && typeof item.content === 'string')
-      .map((item) => ({
-        id: typeof item.id === 'string' && item.id.length <= 100 ? item.id : newItemId(),
-        section: SECTION_ORDER.includes(item.section) ? item.section : 'About',
-        title: item.title.trim().slice(0, 70),
-        content: item.content.trim().slice(0, 1400),
-        shareable: item.shareable === true,
-        createdAt: typeof item.createdAt === 'string' ? item.createdAt.slice(0, 40) : new Date().toISOString(),
-        updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt.slice(0, 40) : new Date().toISOString()
-      })).filter((item) => item.title && item.content)
-  };
+  const seenIds = new Set();
+  const items = value.items.map((item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item) ||
+        typeof item.title !== 'string' || typeof item.content !== 'string' ||
+        !item.title.trim() || !item.content.trim()) {
+      throw new Error('Entry ' + (index + 1) + ' is malformed. No vault data was changed.');
+    }
+    if (item.title.length > 70 || item.content.length > 1400) {
+      throw new Error('Entry ' + (index + 1) + ' exceeds the supported title or content limit. No vault data was changed.');
+    }
+
+    let id = typeof item.id === 'string' && item.id.trim() && item.id.length <= 100
+      ? item.id
+      : newItemId();
+    while (seenIds.has(id)) id = newItemId();
+    seenIds.add(id);
+
+    const now = new Date().toISOString();
+    const createdAt = typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt))
+      ? item.createdAt
+      : now;
+    const updatedAt = typeof item.updatedAt === 'string' && Number.isFinite(Date.parse(item.updatedAt))
+      ? item.updatedAt
+      : now;
+
+    return {
+      id,
+      section: SECTION_ORDER.includes(item.section) ? item.section : 'About',
+      title: item.title,
+      content: item.content,
+      shareable: item.shareable === true,
+      createdAt,
+      updatedAt
+    };
+  });
+  return { version: 1, items };
 }
 function setButtonBusy(button, busy, busyText = 'Working…') {
   if (!button) return;
@@ -240,6 +265,7 @@ async function unlockVault() {
   }
 }
 function clearSession() {
+  sessionGeneration += 1;
   vault = null;
   cryptoKey = null;
   vaultSalt = null;
@@ -265,6 +291,12 @@ function clearSession() {
   if ($('restore-file')) $('restore-file').value = '';
 }
 function lockVault() {
+  if (isSaving) {
+    lockRequested = true;
+    showToast('Finishing the current encrypted save, then locking.');
+    return;
+  }
+  lockRequested = false;
   clearSession();
   showGate('unlock');
 }
@@ -365,6 +397,7 @@ async function handleItemSubmit(event) {
   const title = $('item-name').value.trim();
   const content = $('item-content').value.trim();
   if (!title || !content) return;
+  const saveGeneration = sessionGeneration;
   const now = new Date().toISOString();
   const nextVault = { version: 1, items: vault.items.map((item) => ({ ...item })) };
   if (editingId) {
@@ -385,6 +418,7 @@ async function handleItemSubmit(event) {
   setButtonBusy($('save-item'), true, 'Saving…');
   try {
     await persistVault(nextVault);
+    if (saveGeneration !== sessionGeneration) return;
     vault = nextVault;
     resetItemForm();
     renderAll();
@@ -394,6 +428,7 @@ async function handleItemSubmit(event) {
   } finally {
     isSaving = false;
     setButtonBusy($('save-item'), false);
+    if (lockRequested) lockVault();
   }
 }
 function editItem(id) {
@@ -437,24 +472,31 @@ function requestConfirmation({ title, message, acceptLabel = 'Continue', danger 
   });
 }
 async function deleteItem(id) {
+  if (!vault || isSaving) return;
+  const saveGeneration = sessionGeneration;
   const item = vault.items.find((entry) => entry.id === id);
   if (!item) return;
   const confirmed = await requestConfirmation({
     title: 'Delete this entry?',
-    message: `“${item.title}” will be removed from this device's vault. This cannot be undone unless you have an encrypted backup.`,
+    message: '“' + item.title + '” will be removed from this device\'s vault. This cannot be undone unless you have an encrypted backup.',
     acceptLabel: 'Delete entry',
     danger: true
   });
-  if (!confirmed) return;
+  if (!confirmed || !vault || isSaving || saveGeneration !== sessionGeneration) return;
   const nextVault = { version: 1, items: vault.items.filter((entry) => entry.id !== id) };
+  isSaving = true;
   try {
     await persistVault(nextVault);
+    if (saveGeneration !== sessionGeneration) return;
     vault = nextVault;
     selectedIds.delete(id);
     renderAll();
     showToast('Entry deleted from this device.');
   } catch (error) {
     showToast(storageErrorMessage(error, error.message || 'Could not delete this entry.'));
+  } finally {
+    isSaving = false;
+    if (lockRequested) lockVault();
   }
 }
 function makePack() {
@@ -581,6 +623,7 @@ function closeRestoreDialog() {
 }
 async function restoreBackup(file) {
   if (!file) return;
+  if (isSaving) return showToast('Finish the current save before restoring a backup.');
   try {
     if (file.size > 7 * 1024 * 1024) {
       throw new Error('This backup is larger than the supported 7 MiB limit.');
@@ -636,6 +679,10 @@ async function verifyBackup() {
 }
 function confirmRestore() {
   if (!pendingBackup || !restoreVerified || restoreInProgress) return;
+  if (isSaving) {
+    $('restore-confirm-error').textContent = 'Finish the current save before restoring a backup.';
+    return;
+  }
   restoreInProgress = true;
   setButtonBusy($('confirm-restore'), true, 'Restoring…');
   try {
@@ -651,13 +698,14 @@ function confirmRestore() {
   }
 }
 async function wipeVault() {
+  if (isSaving) return showToast('Finish the current save before deleting the vault.');
   const confirmed = await requestConfirmation({
     title: 'Delete this vault?',
     message: 'All ContextKey vault data saved in this browser will be deleted. This cannot be undone unless you have an encrypted backup.',
     acceptLabel: 'Delete vault data',
     danger: true
   });
-  if (!confirmed) return;
+  if (!confirmed || isSaving) return;
   try {
     localStorage.removeItem(STORAGE_KEY);
     clearSession();
@@ -811,6 +859,7 @@ async function previewPortableImport(file) {
 
 async function confirmPortableImport() {
   if (!vault || !pendingPortableItems.length || isSaving) return;
+  const saveGeneration = sessionGeneration;
   const selected = new Set([...$('portable-import-list').querySelectorAll('[data-import-id]:checked')]
     .map((input) => input.dataset.importId));
   const additions = pendingPortableItems.filter((item) => selected.has(item.id));
@@ -828,6 +877,7 @@ async function confirmPortableImport() {
   try {
     const nextVault = { version: 1, items: [...vault.items.map((item) => ({ ...item })), ...additions.map((item) => ({ ...item }))] };
     await persistVault(nextVault);
+    if (saveGeneration !== sessionGeneration) return;
     vault = nextVault;
     closePortableImport();
     renderAll();
@@ -837,6 +887,7 @@ async function confirmPortableImport() {
   } finally {
     isSaving = false;
     setButtonBusy($('portable-import-confirm'), false);
+    if (lockRequested) lockVault();
   }
 }
 
@@ -848,19 +899,58 @@ function selectPortableImports(checked) {
 function parseMarkdownMemory(text, filename) {
   const normalized = String(text).replace(/\r\n?/g, '\n').replace(/\u0000/g, '').trim();
   if (!normalized) throw new Error('This file is empty.');
+
   const lines = normalized.split('\n');
   const sections = [];
+  const preamble = [];
   let current = null;
+  let fence = null;
+
   for (const line of lines) {
-    const heading = line.match(/^#{1,3}\s+(.+?)\s*#*$/);
+    const fenceLine = line.match(/^ {0,3}(\x60{3,}|~{3,})/);
+    if (fence) {
+      if (fenceLine && fenceLine[1][0] === fence.marker &&
+          fenceLine[1].length >= fence.length &&
+          line.slice(fenceLine[0].length).trim() === '') {
+        fence = null;
+      }
+      if (current) current.lines.push(line);
+      else preamble.push(line);
+      continue;
+    }
+    if (fenceLine) {
+      fence = { marker: fenceLine[1][0], length: fenceLine[1].length };
+      if (current) current.lines.push(line);
+      else preamble.push(line);
+      continue;
+    }
+
+    const heading = line.match(/^ {0,3}#{1,3}\s+(.+?)\s*#*\s*$/);
     if (heading) {
       current = { title: heading[1].trim(), lines: [] };
       sections.push(current);
-    } else if (current) current.lines.push(line);
+    } else if (current) {
+      current.lines.push(line);
+    } else {
+      preamble.push(line);
+    }
   }
-  let entries = sections.length
-    ? sections.map((section) => ({ title: section.title, content: section.lines.join('\n').trim() })).filter((item) => item.content)
-    : [{ title: String(filename || 'Imported note').replace(/\.(md|markdown|txt)$/i, '').slice(0, 70) || 'Imported note', content: normalized }];
+
+  let entries;
+  if (sections.length) {
+    entries = [];
+    const introduction = preamble.join('\n').trim();
+    if (introduction) entries.push({ title: 'Introduction', content: introduction });
+    entries.push(...sections
+      .map((section) => ({ title: section.title, content: section.lines.join('\n').trim() }))
+      .filter((item) => item.content));
+  } else {
+    entries = [{
+      title: String(filename || 'Imported note').replace(/\.(md|markdown|txt)$/i, '').slice(0, 70) || 'Imported note',
+      content: normalized
+    }];
+  }
+
   if (entries.length > 50) throw new Error('This file contains more than 50 sections. Split it into smaller files and import them separately.');
   if (entries.some((item) => item.title.length > 70 || item.content.length > 1400)) {
     throw new Error('One or more sections exceed the current limits (70 characters per title and 1,400 per entry). Split long sections into smaller headings and try again.');
@@ -911,6 +1001,7 @@ async function previewMarkdownImport(file) {
 }
 async function confirmMarkdownImport() {
   if (!vault || !pendingMarkdownItems.length || isSaving) return;
+  const saveGeneration = sessionGeneration;
   const additions = [];
   for (let index = 0; index < pendingMarkdownItems.length; index += 1) {
     const checkbox = $('markdown-import-list').querySelector('[data-markdown-index="' + index + '"]');
@@ -937,6 +1028,7 @@ async function confirmMarkdownImport() {
   try {
     const nextVault = { version: 1, items: [...vault.items.map((item) => ({ ...item })), ...additions] };
     await persistVault(nextVault);
+    if (saveGeneration !== sessionGeneration) return;
     vault = nextVault;
     closeMarkdownImport();
     renderAll();
@@ -946,6 +1038,7 @@ async function confirmMarkdownImport() {
   } finally {
     isSaving = false;
     setButtonBusy($('markdown-import-confirm'), false);
+    if (lockRequested) lockVault();
   }
 }
 
@@ -978,13 +1071,14 @@ function init() {
   $('unlock-pass').addEventListener('keydown', (event) => { if (event.key === 'Enter') unlockVault(); });
   document.querySelectorAll('.restore-from-gate').forEach((button) => button.addEventListener('click', () => $('restore-file').click()));
   $('reset-vault').addEventListener('click', async () => {
+    if (isSaving) return showToast('Finish the current save before resetting the vault.');
     const confirmed = await requestConfirmation({
       title: 'Reset this device vault?',
       message: 'This deletes the encrypted vault saved in this browser. It cannot recover a forgotten passphrase. Continue only if you have a backup or accept losing this device copy.',
       acceptLabel: 'Reset this device',
       danger: true
     });
-    if (!confirmed) return;
+    if (!confirmed || isSaving) return;
     try {
       localStorage.removeItem(STORAGE_KEY);
       clearSession();

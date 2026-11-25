@@ -4,9 +4,11 @@
 
 **Your context. Your choice.** Keep useful background in an encrypted, on-device vault. Choose exactly what goes into each task-specific context pack.
 
-<https://ansh71845.github.io/contextkey/>
+<https://contextkey-security-preview.vercel.app/>
 
 **Try the live app:** open the link above in Chrome. No account or AI API key is required. Create a vault, add a small sample entry, and build a context pack. On Android, use Chrome's **Add to Home screen** option if you want an app-like shortcut.
+
+**GitHub Pages deployment:** <https://ansh71845.github.io/contextkey/> is also available. Each hostname has separate browser storage, so a vault created on one site will not automatically appear on the other. Use an encrypted backup and restore to move between them.
 
 > **Experimental MVP:** ContextKey is an early prototype, not a professionally audited security product. Test it with non-sensitive sample information only.
 
@@ -34,7 +36,7 @@ ContextKey keeps useful personal context in one place and lets you choose which 
 
 The encryption API requires a secure browser origin. The simplest free route is GitHub Pages:
 
-1. Open the [live ContextKey app](https://ansh71845.github.io/contextkey/) in Chrome on Android.
+1. Open the [primary ContextKey app](https://contextkey-security-preview.vercel.app/) in Chrome on Android. Keep using the same hostname for your vault.
 2. Create your vault using a strong passphrase that you can remember. There is no password-reset service.
 3. Add a few non-sensitive sample entries. Keep private entries marked private.
 4. In **Context pack**, select only the approved entries needed for that task. The pack starts empty; **Add suggested** is optional and does not export anything.
@@ -45,7 +47,7 @@ To inspect the source, browse this repository. Do not put your personal context,
 
 ## Where your data lives
 
-GitHub Pages hosts the app files, not your vault. The app does not send your entries to GitHub or to a ContextKey server. The encrypted vault is saved in that browser's local storage. GitHub Pages may still log visitor IP addresses and standard web-request metadata for its own security and operations; 'local-first' means your vault content is not uploaded by this app, not that the hosting visit is invisible.
+Vercel and GitHub Pages host the public app files, not your vault. The app does not send your entries to either host or to a ContextKey application server. The encrypted vault is saved in the browser storage for the exact site origin you use. The Vercel and GitHub Pages hostnames have separate storage, even in the same browser; use an encrypted backup and restore when moving between them. Each hosting provider may process technical web-request metadata under its own privacy documentation. 'Local-first' means your vault content is not uploaded by this app, not that the hosting visit is invisible.
 
 ## Portable context format v1
 
@@ -71,7 +73,7 @@ Use **Encrypted backup** regularly. The `.ckvault` file is encrypted and can be 
 
 The runtime app is plain HTML, CSS, and JavaScript. It has no production build step or runtime package dependencies. Automated checks run in GitHub Actions with Node.js 22 and Playwright.
 
-For local testing, serve this folder at `http://127.0.0.1:4173` (or another secure origin). With Node.js 22 installed, run `npm install --no-save --no-package-lock playwright@1.56.1`, then `npx playwright install chromium`. Start a static server in the repository root on port 4173, then run:
+For local testing, serve this folder at `http://127.0.0.1:4173` (or another secure origin). With Node.js 22 installed, run `npm install --no-save --no-package-lock playwright@1.65.1`, then `npx playwright install chromium`. Start a static server in the repository root on port 4173, then run:
 
 ```sh
 node --check app.js

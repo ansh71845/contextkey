@@ -45,7 +45,9 @@ test('locking removes decrypted DOM content and clears local editing state', () 
     assert.ok(clear.includes(id), `lock cleanup must clear ${id}`);
   }
   assert.match(clear, /item-form.*reset/s);
-  assert.match(app, /function lockVault\(\)\s*\{\s*clearSession\(\)/);
+  assert.match(app, /function lockVault\(\)\s*\{\s*if \(isSaving\)/);
+  assert.match(app, /lockRequested = true/);
+  assert.match(app, /if \(lockRequested\) lockVault\(\)/);
 });
 
 test('saves encrypt the proposed vault before committing it to in-memory state', () => {
@@ -198,6 +200,37 @@ test('portable import requires explicit item selection and confirmation', () => 
   assert.match(html, /Import selected/);
 });
 
+
+test('vault loading rejects malformed and oversized entries instead of silently dropping or truncating data', () => {
+  const start = app.indexOf('function cleanVault(value)');
+  const end = app.indexOf('\nfunction setButtonBusy', start);
+  const loader = app.slice(start, end);
+  assert.match(loader, /value\.version !== 1/);
+  assert.match(loader, /value\.items\.map/);
+  assert.doesNotMatch(loader, /value\.items\.filter/);
+  assert.match(loader, /No vault data was changed/);
+  assert.match(loader, /item\.title\.length > 70 \|\| item\.content\.length > 1400/);
+  assert.doesNotMatch(loader, /item\.(?:title|content)\.slice/);
+});
+
+test('locking waits for pending encrypted saves and then invalidates the decrypted session', () => {
+  assert.match(app, /let sessionGeneration = 0/);
+  assert.match(app, /sessionGeneration \+= 1/);
+  assert.match(app, /saveGeneration !== sessionGeneration/);
+  assert.match(app, /function lockVault\(\)\s*\{\s*if \(isSaving\)/);
+  assert.match(app, /lockRequested = true/);
+  assert.match(app, /if \(lockRequested\) lockVault\(\)/);
+});
+
+test('Markdown import preserves preamble text and does not split headings inside fenced code', () => {
+  const start = app.indexOf('function parseMarkdownMemory(text, filename)');
+  const end = app.indexOf('\nfunction closeMarkdownImport()', start);
+  const parser = app.slice(start, end);
+  assert.match(parser, /const preamble = \[\]/);
+  assert.match(parser, /const fenceLine = line\.match/);
+  assert.match(parser, /title: 'Introduction'/);
+  assert.match(parser, /current\.lines\.push\(line\)/);
+});
 
 test('Markdown and text imports are local, bounded, editable, selectable, and private by default', () => {
   assert.match(html, /id="markdown-import-file"/);
