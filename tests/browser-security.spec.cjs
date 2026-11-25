@@ -138,6 +138,35 @@ async function main() {
     assert.equal(await packPage.locator('#context-list').innerText(), '');
     await packContext.close();
 
+    const lockRaceContext = await browser.newContext(mobile);
+    const lockRacePage = await lockRaceContext.newPage();
+    await createVault(lockRacePage, PASS_A);
+    await navigate(lockRacePage, 'library');
+    await lockRacePage.locator('#item-name').fill('Saved during lock');
+    await lockRacePage.locator('#item-content').fill('The save must finish without restoring the unlocked session.');
+    await lockRacePage.evaluate(() => {
+      const originalPersist = persistVault;
+      window.persistVault = async (...args) => {
+        await new Promise((resolve) => setTimeout(resolve, 350));
+        return originalPersist(...args);
+      };
+    });
+    await lockRacePage.locator('#item-form button[type="submit"]').click();
+    await lockRacePage.waitForFunction(() => isSaving === true);
+    await lockRacePage.locator('#lock-button').click();
+    await lockRacePage.locator('#gate').waitFor({ state: 'visible' });
+    await lockRacePage.waitForTimeout(500);
+    assert.equal(await lockRacePage.locator('#app').isVisible(), false, 'the app must remain locked after the pending save completes');
+    assert.equal(await lockRacePage.locator('#context-list .context-item').count(), 0,
+      'a pending save must not repopulate decrypted entry content after locking');
+    await lockRacePage.locator('#unlock-pass').fill(PASS_A);
+    await lockRacePage.locator('#unlock-vault').click();
+    await lockRacePage.locator('#app').waitFor({ state: 'visible' });
+    await navigate(lockRacePage, 'library');
+    assert.equal(await lockRacePage.getByText('Saved during lock', { exact: true }).count(), 1,
+      'the encrypted save should still be available after a deliberate unlock');
+    await lockRaceContext.close();
+
     const backupContext = await browser.newContext({ ...mobile, acceptDownloads: true });
     const backupPage = await backupContext.newPage();
     await createVault(backupPage, PASS_B);
