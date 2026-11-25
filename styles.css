@@ -936,3 +936,5 @@ img,svg,video,canvas{max-width:100%}
  .nav-list{grid-template-columns:1fr;gap:4px}
  .nav-item{justify-content:flex-start;min-height:44px;padding:0 12px;font-size:12px}
 }
+
+.gate-footer{display:flex;justify-content:center;align-items:center;gap:20px;flex-wrap:wrap;width:min(100%,980px);margin:24px auto 0;padding:16px 20px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}
