@@ -1057,7 +1057,20 @@ function init() {
   $('restore-dialog').addEventListener('close', clearRestoreState);
   $('wipe-vault').addEventListener('click', wipeVault);
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+    window.addEventListener('load', () => {
+      const hadController = Boolean(navigator.serviceWorker.controller);
+      let refreshed = false;
+      if (hadController) {
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshed) return;
+          refreshed = true;
+          window.location.reload();
+        });
+      }
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+        .then((registration) => registration.update())
+        .catch(() => {});
+    });
   }
 }
 
