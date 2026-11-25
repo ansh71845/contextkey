@@ -869,17 +869,17 @@ function selectPortableImports(checked) {
 
 
 function parseMarkdownMemory(text, filename) {
-  const normalized = String(text).replace(/\\r\\n?/g, '\\n').replace(/\\u0000/g, '').trim();
+  const normalized = String(text).replace(/\r\n?/g, '\n').replace(/\u0000/g, '').trim();
   if (!normalized) throw new Error('This file is empty.');
 
-  const lines = normalized.split('\\n');
+  const lines = normalized.split('\n');
   const sections = [];
   const preamble = [];
   let current = null;
   let fence = null;
 
   for (const line of lines) {
-    const fenceLine = line.match(/^ {0,3}(`{3,}|~{3,})/);
+    const fenceLine = line.match(/^ {0,3}(\x60{3,}|~{3,})/);
     if (fence) {
       if (fenceLine && fenceLine[1][0] === fence.marker &&
           fenceLine[1].length >= fence.length &&
@@ -897,7 +897,7 @@ function parseMarkdownMemory(text, filename) {
       continue;
     }
 
-    const heading = line.match(/^ {0,3}#{1,3}\\s+(.+?)\\s*#*\\s*$/);
+    const heading = line.match(/^ {0,3}#{1,3}\s+(.+?)\s*#*\s*$/);
     if (heading) {
       current = { title: heading[1].trim(), lines: [] };
       sections.push(current);
@@ -911,14 +911,14 @@ function parseMarkdownMemory(text, filename) {
   let entries;
   if (sections.length) {
     entries = [];
-    const introduction = preamble.join('\\n').trim();
+    const introduction = preamble.join('\n').trim();
     if (introduction) entries.push({ title: 'Introduction', content: introduction });
     entries.push(...sections
-      .map((section) => ({ title: section.title, content: section.lines.join('\\n').trim() }))
+      .map((section) => ({ title: section.title, content: section.lines.join('\n').trim() }))
       .filter((item) => item.content));
   } else {
     entries = [{
-      title: String(filename || 'Imported note').replace(/\\.(md|markdown|txt)$/i, '').slice(0, 70) || 'Imported note',
+      title: String(filename || 'Imported note').replace(/\.(md|markdown|txt)$/i, '').slice(0, 70) || 'Imported note',
       content: normalized
     }];
   }
