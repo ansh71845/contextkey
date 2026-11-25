@@ -417,7 +417,7 @@ svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColo
 .preview-panel > label { display: block; margin: 18px 0 8px; color: var(--muted); font-size: 10px; }
 .pack-preview { display: block; width: 100%; min-height: 315px; padding: 13px; border: 1px solid var(--line-strong); border-radius: 9px; outline: none; background: #f8f5ed; color: #34443a; resize: vertical; font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; font-size: 10px; line-height: 1.7; }
 .pack-preview:focus { border-color: #72927e; box-shadow: 0 0 0 3px rgba(31, 88, 70, .08); }
-.pack-preview::placeholder { color: #8a958e; }
+.pack-preview::placeholder { color: var(--muted); }
 .preview-meta { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-top: 8px; color: var(--soft); font-size: 9px; line-height: 1.5; }
 #pack-feedback { color: var(--muted); }
 #pack-length { flex: 0 0 auto; }
@@ -646,7 +646,7 @@ button, input, select, textarea { font-size: 14px; }
 }
 .gate-access::before { position:absolute; top:0; left:28px; right:28px; height:3px; background:var(--green); content:""; }
 .access-topline { margin-bottom: 32px; color: var(--soft); font-size: 10px; }
-.access-indicator, .status-dot { background: #3f765f; box-shadow: 0 0 0 4px rgba(71,116,94,.11); }
+.access-indicator, .status-dot { background: var(--sea-glass); box-shadow: 0 0 0 4px rgba(137,170,155,.18); }
 .gate-access h2 { font-family: var(--font-body); font-size: 34px; font-weight: 720; letter-spacing: -.055em; }
 .access-copy { color: var(--muted); font-size: 13px; line-height: 1.7; }
 .field-group label, .gate-fields label:not(.password-toggle), .select-panel > label, .preview-panel > label { font-size: 12px; font-weight: 700; }
@@ -654,7 +654,7 @@ button, input, select, textarea { font-size: 14px; }
   min-height: 48px; border-color: var(--line-strong); border-radius: 7px; background: #fffcf6; padding: 12px 13px; font-size: 14px;
 }
 .field-group textarea { min-height: 138px; line-height: 1.65; }
-.field-group input::placeholder, .field-group textarea::placeholder, .gate-fields input::placeholder, .search-wrap input::placeholder { color: #626e65; opacity: 1; }
+.field-group input::placeholder, .field-group textarea::placeholder, .gate-fields input::placeholder, .search-wrap input::placeholder { color: var(--muted); opacity: 1; }
 .password-field { border-radius: 7px; }
 .password-toggle { font-size: 12px; }
 .field-help { font-size: 11px; color: var(--muted); }
