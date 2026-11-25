@@ -651,7 +651,10 @@ async function restoreBackup(file) {
     $('restore-dialog').showModal();
     $('restore-passphrase').focus();
   } catch (error) {
-    showToast(error.message || 'This file could not be read as a ContextKey backup.');
+    const message = error instanceof SyntaxError
+      ? 'This file is not valid JSON. Your current vault was not changed.'
+      : (error.message || 'This file could not be read as a ContextKey backup.');
+    showToast(message);
     $('restore-file').value = '';
   }
 }
