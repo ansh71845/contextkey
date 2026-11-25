@@ -340,7 +340,7 @@ svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColo
 .form-card, .library-list-panel, .select-panel, .preview-panel { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .form-card { display: grid; gap: 13px; }
 .card-topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.status-pill, .count-pill { display: inline-flex; min-height: 22px; align-items: center; justify-content: center; padding: 3px 8px; border: 1px solid #d7e1d8; border-radius: 999px; background: #f2f6f1; color: var(--green); font-size: 9px; font-weight: 700; white-space: nowrap; }
+.status-pill, .count-pill { display: inline-flex; min-height: 22px; align-items: center; justify-content: center; padding: 3px 8px; border: 1px solid #d7e1d8; border-radius: 4px; background: #f2f6f1; color: var(--green); font-size: 9px; font-weight: 700; white-space: nowrap; }
 .form-card h2 { margin-bottom: 4px; }
 .card-description { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
 .form-card .field-group { gap: 6px; }
