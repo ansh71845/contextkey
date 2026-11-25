@@ -916,3 +916,23 @@ button, input, select, textarea { font-size: 14px; }
 .markdown-edit-label{display:grid;gap:5px;color:var(--soft);font-size:11px}
 .markdown-edit-label input,.markdown-edit-label textarea{width:100%;min-width:0;padding:9px;border:1px solid var(--line);border-radius:5px;background:var(--canvas);color:var(--ink);font:inherit;font-size:12px;line-height:1.5}
 .markdown-edit-label textarea{resize:vertical}
+
+/* Release readiness */
+html,body{max-width:100%;overflow-x:hidden}
+.main-layout,.content-panel,.view{min-width:0}
+img,svg,video,canvas{max-width:100%}
+.mobile-menu-toggle{display:none;align-items:center;gap:7px;min-height:40px;padding:0 10px;border:1px solid var(--line-strong);border-radius:5px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.mobile-menu-toggle svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
+.legal-footer-links{display:flex;gap:14px}
+.legal-footer-links a{color:var(--muted);font-size:11px;text-decoration:underline;text-underline-offset:3px}
+.legal-footer-links a:hover{color:var(--ink)}
+@media(max-width:700px){
+ .mobile-menu-toggle{display:inline-flex}
+ .topbar{position:relative;z-index:30}
+ .topbar-actions{margin-left:auto}
+ .side-panel{position:absolute;top:0;left:0;right:0;z-index:25;display:none;padding:14px 16px;border:1px solid var(--line);border-top:0;border-radius:0 0 6px 6px;background:var(--surface);box-shadow:0 12px 24px rgba(25,38,30,.12)}
+ .side-panel.is-open{display:block}
+ .nav-label{display:block;margin:0 0 9px}
+ .nav-list{grid-template-columns:1fr;gap:4px}
+ .nav-item{justify-content:flex-start;min-height:44px;padding:0 12px;font-size:12px}
+}
