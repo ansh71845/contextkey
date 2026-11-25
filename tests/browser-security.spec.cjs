@@ -61,7 +61,7 @@ async function verifyDataIntegrityHelpers(page) {
     '',
     '## Project',
     'A project detail.'
-  ].join('\\n');
+  ].join('\n');
   const markdown = await page.evaluate((source) => parseMarkdownMemory(source, 'notes.md')
     .map((entry) => ({ title: entry.title, content: entry.content })), markdownSource);
   assert.equal(markdown.length, 3, 'Markdown preamble and both real headings should become entries');
