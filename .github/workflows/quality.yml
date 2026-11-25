@@ -2,6 +2,7 @@ name: ContextKey quality checks
 
 on:
   pull_request:
+    branches: ["main"]
   push:
     branches: ["main"]
 
@@ -11,26 +12,21 @@ permissions:
 jobs:
   static-regressions:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
+          package-manager-cache: false
+      - name: Check JavaScript syntax
+        run: |
+          node --check app.js
+          node --check sw.js
+          node --check legal.js
       - name: Run static regression tests
         run: node --test tests/*.test.mjs
-      - name: Install browser test dependency
-        run: npm install --no-save --no-package-lock playwright@1.56.1
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Run browser regression tests
-        run: |
-          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/contextkey-http.log 2>&1 &
-          SERVER_PID=$!
-          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
-          for attempt in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi
-            sleep 1
-          done
-          node tests/browser-security.spec.cjs

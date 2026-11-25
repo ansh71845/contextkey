@@ -1,7 +1,25 @@
-# Never commit user data or exported context
+# Local vault data and exported context
 *.ckvault
 contextkey-*.md
 *.context-pack.md
 *.backup
+
+# Local credentials and environment files
+.env
+.env.*
+!.env.example
+.npmrc
+.netrc
+.pypirc
+credentials.json
+secrets.*
+
+# Private keys and certificate bundles
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Operating-system files
 .DS_Store
 Thumbs.db

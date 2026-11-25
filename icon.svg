@@ -1,6 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
   <title id="title">ContextKey</title>
-  <rect width="512" height="512" rx="112" fill="#205442"/>
-  <path d="M256 94c-68 0-123 55-123 123 0 47 27 89 67 109l-25 92h162l-25-92c40-20 67-62 67-109 0-68-55-123-123-123Zm0 68a55 55 0 1 1 0 110 55 55 0 0 1 0-110Z" fill="#fffdf8"/>
-  <path d="M247 268h18v106h-18z" fill="#205442"/>
+  <rect width="512" height="512" rx="108" fill="#1F5846"/>
+  <path d="M112 76h170l88 88v272H112Z" fill="#FFFCF6"/>
+  <path d="M282 76v88h88" fill="#E5EEE8"/>
+  <path d="M282 76v88h88" fill="none" stroke="#1F5846" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M158 207h150M158 245h116M158 283h88" fill="none" stroke="#1F5846" stroke-width="17" stroke-linecap="round"/>
+  <circle cx="292" cy="333" r="48" fill="#FFFCF6" stroke="#925331" stroke-width="20"/>
+  <path d="m328 369 84 84m-24-24 22-22m-2 46 24-24" fill="none" stroke="#925331" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
