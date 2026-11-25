@@ -89,4 +89,4 @@ No open-source license is currently included. The repository is publicly viewabl
 
 **Share the minimum useful context for the current task.** An entry being saved in the vault does not make it shareable. Sharing is an explicit, separate choice.
 
-See `EXECUTIVE_SUMMARY.md` for the decision brief, `MARKET_RESEARCH.md` for the market assessment, and `PRODUCT_PLAN.md` for the roadmap and validation gates. These are research and planning documents, not proof of product-market fit.
+See `DESIGN_SYSTEM.md` for the ranked palette evaluation and visual rules, `EXECUTIVE_SUMMARY.md` for the decision brief, `MARKET_RESEARCH.md` for the market assessment, and `PRODUCT_PLAN.md` for the roadmap and validation gates. These are design, research, and planning documents, not proof of product-market fit.
