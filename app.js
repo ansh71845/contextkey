@@ -16,6 +16,7 @@ let toastTimer = null;
 let pendingBackup = null;
 let restoreVerified = false;
 let restoreInProgress = false;
+let restoreGeneration = 0;
 let isSaving = false;
 let lockRequested = false;
 let sessionGeneration = 0;
@@ -44,6 +45,13 @@ function base64ToBytes(value) {
   const binary = atob(value);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+function decodeCanonicalBase64(value) {
+  const bytes = base64ToBytes(value);
+  if (bytesToBase64(bytes) !== value) {
+    throw new Error('This backup contains malformed encryption data.');
+  }
   return bytes;
 }
 async function deriveKey(passphrase, salt, iterations = PBKDF2_ITERATIONS) {
@@ -87,9 +95,9 @@ function decodeVaultEnvelope(envelope) {
       !/^[A-Za-z0-9+/]+={0,2}$/.test(envelope.data)) {
     throw new Error('This backup has invalid or oversized encryption data.');
   }
-  const salt = base64ToBytes(envelope.salt);
-  const iv = base64ToBytes(envelope.iv);
-  const data = base64ToBytes(envelope.data);
+  const salt = decodeCanonicalBase64(envelope.salt);
+  const iv = decodeCanonicalBase64(envelope.iv);
+  const data = decodeCanonicalBase64(envelope.data);
   if (salt.length !== 16 || iv.length !== 12 || data.length < 16 || data.length > 5 * 1024 * 1024) {
     throw new Error('This backup has invalid encryption data or exceeds the supported size.');
   }
@@ -602,6 +610,7 @@ function downloadEncryptedBackup() {
   }
 }
 function clearRestoreState() {
+  restoreGeneration += 1;
   pendingBackup = null;
   restoreVerified = false;
   restoreInProgress = false;
@@ -654,14 +663,19 @@ async function verifyBackup() {
     $('restore-passphrase').focus();
     return;
   }
+  const verificationGeneration = restoreGeneration;
+  const backupToVerify = pendingBackup;
+  restoreVerified = false;
+  $('restore-confirm-step').hidden = true;
+  $('restore-verify-step').hidden = false;
   restoreInProgress = true;
   setButtonBusy($('verify-backup'), true, 'Verifying…');
   $('restore-error').textContent = '';
   try {
-    const result = await decryptVaultEnvelope(pendingBackup, passphrase);
+    const result = await decryptVaultEnvelope(backupToVerify, passphrase);
+    if (verificationGeneration !== restoreGeneration || pendingBackup !== backupToVerify) return;
     const itemCount = result.vault.items.length;
     restoreVerified = true;
-    $('restore-passphrase').value = '';
     $('restore-verify-step').hidden = true;
     $('restore-confirm-step').hidden = false;
     $('restore-summary').textContent = `This encrypted backup contains ${itemCount} ${itemCount === 1 ? 'entry' : 'entries'}.`;
@@ -669,12 +683,17 @@ async function verifyBackup() {
     $('restore-copy').textContent = 'The passphrase is correct. Confirm only if you intend to replace the vault on this device.';
     $('confirm-restore').focus();
   } catch (error) {
+    if (verificationGeneration !== restoreGeneration || pendingBackup !== backupToVerify) return;
+    restoreVerified = false;
     $('restore-error').textContent = error.name === 'OperationError'
       ? 'That passphrase did not unlock this backup.'
       : (error.message || 'Could not verify this backup.');
   } finally {
-    restoreInProgress = false;
-    setButtonBusy($('verify-backup'), false);
+    if (verificationGeneration === restoreGeneration) {
+      $('restore-passphrase').value = '';
+      restoreInProgress = false;
+      setButtonBusy($('verify-backup'), false);
+    }
   }
 }
 function confirmRestore() {
