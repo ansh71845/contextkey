@@ -19,7 +19,7 @@ async function createVault(page, passphrase) {
 async function navigate(page, view) {
   const menu = page.locator('#mobile-menu-toggle');
   if (await menu.isVisible() && await menu.getAttribute('aria-expanded') !== 'true') await menu.click();
-  await page.locator('[data-view="' + view + '"]').click();
+  await page.locator('button[data-view="' + view + '"]').click();
   if (await menu.isVisible()) assert.equal(await menu.getAttribute('aria-expanded'), 'false', 'mobile menu should close after navigation');
 }
 
