@@ -470,7 +470,7 @@ async function deleteItem(id) {
   if (!item) return;
   const confirmed = await requestConfirmation({
     title: 'Delete this entry?',
-    message: \`“\${item.title}” will be removed from this device's vault. This cannot be undone unless you have an encrypted backup.\`,
+    message: '“' + item.title + '” will be removed from this device\'s vault. This cannot be undone unless you have an encrypted backup.',
     acceptLabel: 'Delete entry',
     danger: true
   });
