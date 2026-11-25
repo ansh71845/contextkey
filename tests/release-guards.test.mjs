@@ -50,6 +50,20 @@ test('Pages publishes only the explicit public runtime allowlist', () => {
   assert.match(pages, /test ! -e _site\/PRODUCT_PLAN\.md/);
 });
 
+test('Pages upload and deployment are isolated to separate jobs with an artifact-visibility gate', () => {
+  assert.match(pages, /jobs:\s+build:[\s\S]*?upload-pages-artifact/);
+  const workflowLines = pages.split(/\r?\n/);
+  assert.ok(workflowLines.some((line, index) => line.trim() === 'deploy:' && workflowLines[index + 1]?.trim() === 'needs: build'));
+  assert.match(pages, /Wait for uploaded Pages artifact to become visible/);
+  assert.match(pages, /actions\/runs\/\$\{GITHUB_RUN_ID\}\/artifacts/);
+  assert.match(pages, /select\(.name == "github-pages" and .expired == false\)/);
+  assert.match(pages, /sleep 2/);
+  assert.match(pages, /actions: read/);
+  assert.match(pages, /pages: write/);
+  assert.match(pages, /id-token: write/);
+  assert.doesNotMatch(pages, /uses: actions\/deploy-pages[^\n]*\n\s*uses: actions\/upload-pages-artifact/);
+});
+
 test('Actions use immutable pins, least privilege, and a fixed supported runner', () => {
   for (const workflow of [pages, quality, security]) {
     assert.match(workflow, /runs-on: ubuntu-24\.04/);
