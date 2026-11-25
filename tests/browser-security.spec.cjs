@@ -79,7 +79,7 @@ async function verifyDataIntegrityHelpers(page) {
   assert.match(oversized, /exceeds the supported title or content limit/);
 
   const markdown = await page.evaluate(() => parseMarkdownMemory(
-    'Intro text before the first heading.\\n\\n# Profile\\nA profile detail.\\n\\n```md\\n## This heading belongs to code\\n```\\n\\n## Project\\nA project detail.',
+    'Intro text before the first heading.\n\n# Profile\nA profile detail.\n\n```md\n## This heading belongs to code\n```\n\n## Project\nA project detail.',
     'notes.md'
   ).map((entry) => ({ title: entry.title, content: entry.content })));
   assert.equal(markdown.length, 3, 'Markdown preamble and both real headings should become entries');
