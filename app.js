@@ -15,6 +15,7 @@ let packInitialized = false;
 let toastTimer = null;
 let pendingBackup = null;
 let restoreVerified = false;
+let restoreVerifiedSnapshot = null;
 let restoreInProgress = false;
 let isSaving = false;
 let lockRequested = false;
@@ -90,16 +91,54 @@ function decodeVaultEnvelope(envelope) {
   const salt = base64ToBytes(envelope.salt);
   const iv = base64ToBytes(envelope.iv);
   const data = base64ToBytes(envelope.data);
-  if (salt.length !== 16 || iv.length !== 12 || data.length < 16 || data.length > 5 * 1024 * 1024) {
+  if (salt.length !== 16 || iv.length !== 12 || data.length < 16 || data.length > 5 * 1024 * 1024 ||
+      bytesToBase64(salt) !== envelope.salt || bytesToBase64(iv) !== envelope.iv ||
+      bytesToBase64(data) !== envelope.data) {
     throw new Error('This backup has invalid encryption data or exceeds the supported size.');
   }
   return { salt, iv, data };
+}
+function validateBackupVault(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      value.version !== 1 || !Array.isArray(value.items) || value.items.length > 500) {
+    throw new Error('This backup does not contain a supported ContextKey vault. No vault data was changed.');
+  }
+  const ids = new Set();
+  const items = value.items.map((item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item) ||
+        typeof item.id !== 'string' || !item.id.trim() || item.id.length > 100 ||
+        ids.has(item.id) || !SECTION_ORDER.includes(item.section) ||
+        typeof item.title !== 'string' || !item.title.trim() || item.title.length > 70 ||
+        typeof item.content !== 'string' || !item.content.trim() || item.content.length > 1400 ||
+        typeof item.shareable !== 'boolean' ||
+        typeof item.createdAt !== 'string' || !Number.isFinite(Date.parse(item.createdAt)) ||
+        typeof item.updatedAt !== 'string' || !Number.isFinite(Date.parse(item.updatedAt))) {
+      throw new Error('Backup entry ' + (index + 1) + ' is invalid or unsupported. No vault data was changed.');
+    }
+    ids.add(item.id);
+    return {
+      id: item.id,
+      section: item.section,
+      title: item.title,
+      content: item.content,
+      shareable: item.shareable,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt
+    };
+  });
+  return { version: 1, items };
 }
 async function decryptVaultEnvelope(envelope, passphrase) {
   const { salt, iv, data } = decodeVaultEnvelope(envelope);
   const key = await deriveKey(passphrase, salt, envelope.iterations);
   const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
-  const restoredVault = cleanVault(JSON.parse(decoder.decode(plain)));
+  let parsed;
+  try {
+    parsed = JSON.parse(decoder.decode(plain));
+  } catch {
+    throw new Error('The encrypted backup contents are not valid JSON. No vault data was changed.');
+  }
+  const restoredVault = validateBackupVault(parsed);
   return { vault: restoredVault, key, salt };
 }
 async function persistVault(nextVault = vault, key = cryptoKey, salt = vaultSalt) {
@@ -604,6 +643,7 @@ function downloadEncryptedBackup() {
 function clearRestoreState() {
   pendingBackup = null;
   restoreVerified = false;
+  restoreVerifiedSnapshot = null;
   restoreInProgress = false;
   $('restore-passphrase').value = '';
   $('restore-error').textContent = '';
@@ -623,7 +663,11 @@ function closeRestoreDialog() {
 }
 async function restoreBackup(file) {
   if (!file) return;
-  if (isSaving) return showToast('Finish the current save before restoring a backup.');
+  if (isSaving) {
+    $('restore-file').value = '';
+    return showToast('Finish the current save before restoring a backup.');
+  }
+  clearRestoreState();
   try {
     if (file.size > 7 * 1024 * 1024) {
       throw new Error('This backup is larger than the supported 7 MiB limit.');
@@ -661,6 +705,7 @@ async function verifyBackup() {
     const result = await decryptVaultEnvelope(pendingBackup, passphrase);
     const itemCount = result.vault.items.length;
     restoreVerified = true;
+    restoreVerifiedSnapshot = JSON.stringify(pendingBackup);
     $('restore-passphrase').value = '';
     $('restore-verify-step').hidden = true;
     $('restore-confirm-step').hidden = false;
@@ -678,7 +723,11 @@ async function verifyBackup() {
   }
 }
 function confirmRestore() {
-  if (!pendingBackup || !restoreVerified || restoreInProgress) return;
+  if (!pendingBackup || !restoreVerified || restoreInProgress ||
+      !restoreVerifiedSnapshot || JSON.stringify(pendingBackup) !== restoreVerifiedSnapshot) {
+    $('restore-confirm-error').textContent = 'Verify this backup again before restoring it.';
+    return;
+  }
   if (isSaving) {
     $('restore-confirm-error').textContent = 'Finish the current save before restoring a backup.';
     return;
@@ -686,7 +735,8 @@ function confirmRestore() {
   restoreInProgress = true;
   setButtonBusy($('confirm-restore'), true, 'Restoring…');
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingBackup));
+    decodeVaultEnvelope(pendingBackup);
+    localStorage.setItem(STORAGE_KEY, restoreVerifiedSnapshot);
     closeRestoreDialog();
     lockVault();
     showToast('Backup restored. Unlock it with the passphrase used to create it.');
