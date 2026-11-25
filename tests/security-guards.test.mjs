@@ -143,7 +143,7 @@ test('secondary typography and input hints meet WCAG AA contrast on primary surf
   assert.ok(contrastRatio(soft, surface) >= 4.5, 'secondary labels must meet 4.5:1 on white surfaces');
   assert.ok(contrastRatio(muted, canvas) >= 4.5, 'body copy must meet 4.5:1 on the canvas');
   assert.ok(contrastRatio(muted, surface) >= 4.5, 'input hints must meet 4.5:1 on white surfaces');
-  assert.match(css, /::placeholder[^}]*color: var\\(--muted\\)/s);
+  assert.match(css, /::placeholder[^}]*color: var\(--muted\)/s);
 });
 
 test('library filters distinguish private, share-ready, and category entries', () => {
