@@ -198,7 +198,7 @@ async function main() {
       mimeType: 'application/json',
       buffer: Buffer.from('{not-json')
     });
-    await restorePage.getByText(/Unexpected token|JSON|valid/i).waitFor();
+    await restorePage.locator('#toast').filter({ hasText: /JSON|Unexpected token|valid/i }).waitFor();
     assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 1,
       'invalid JSON must not alter the existing vault');
 
