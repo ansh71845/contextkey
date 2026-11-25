@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -225,5 +225,26 @@ test('public page copy avoids em dashes and fabricated endorsement language', ()
     const content = readFileSync(new URL('../' + page, import.meta.url), 'utf8');
     assert.doesNotMatch(content, /—/);
     assert.doesNotMatch(content, /made with ai|made with al|customer reviews|trusted by \d+/i);
+  }
+});
+
+
+test('all local links and assets on public HTML pages resolve', () => {
+  const pages = ['index.html', 'privacy.html', 'terms.html', '404.html'];
+  for (const page of pages) {
+    const source = readFileSync(new URL('../' + page, import.meta.url), 'utf8');
+    const ids = new Set([...source.matchAll(/\\bid="([^"]+)"/g)].map((match) => match[1]));
+    for (const match of source.matchAll(/\\b(?:href|src)="([^"]+)"/g)) {
+      const target = match[1];
+      if (/^(?:[a-z][a-z0-9+.-]*:|\\/\\/)/i.test(target)) continue;
+      if (target.startsWith('#')) {
+        assert.ok(ids.has(target.slice(1)), page + ' has a broken in-page link: ' + target);
+        continue;
+      }
+      const resolved = new URL(target, new URL('../' + page, import.meta.url));
+      let fileUrl = resolved;
+      if (resolved.pathname.endsWith('/')) fileUrl = new URL('index.html', resolved);
+      assert.ok(existsSync(fileUrl), page + ' has a broken local reference: ' + target);
+    }
   }
 });
