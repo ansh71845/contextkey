@@ -182,51 +182,6 @@ function newItemId() {
   if (crypto.randomUUID) return crypto.randomUUID();
   return `item-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
-function cleanVault(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value) ||
-      value.version !== 1 || !Array.isArray(value.items)) {
-    throw new Error('This backup does not contain a supported ContextKey vault. No vault data was changed.');
-  }
-  if (value.items.length > 500) {
-    throw new Error('This vault contains more than the supported 500 entries. No vault data was changed.');
-  }
-  const seenIds = new Set();
-  const items = value.items.map((item, index) => {
-    if (!item || typeof item !== 'object' || Array.isArray(item) ||
-        typeof item.title !== 'string' || typeof item.content !== 'string' ||
-        !item.title.trim() || !item.content.trim()) {
-      throw new Error('Entry ' + (index + 1) + ' is malformed. No vault data was changed.');
-    }
-    if (item.title.length > 70 || item.content.length > 1400) {
-      throw new Error('Entry ' + (index + 1) + ' exceeds the supported title or content limit. No vault data was changed.');
-    }
-
-    let id = typeof item.id === 'string' && item.id.trim() && item.id.length <= 100
-      ? item.id
-      : newItemId();
-    while (seenIds.has(id)) id = newItemId();
-    seenIds.add(id);
-
-    const now = new Date().toISOString();
-    const createdAt = typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt))
-      ? item.createdAt
-      : now;
-    const updatedAt = typeof item.updatedAt === 'string' && Number.isFinite(Date.parse(item.updatedAt))
-      ? item.updatedAt
-      : now;
-
-    return {
-      id,
-      section: SECTION_ORDER.includes(item.section) ? item.section : 'About',
-      title: item.title,
-      content: item.content,
-      shareable: item.shareable === true,
-      createdAt,
-      updatedAt
-    };
-  });
-  return { version: 1, items };
-}
 function setButtonBusy(button, busy, busyText = 'Working…') {
   if (!button) return;
   if (busy) {
