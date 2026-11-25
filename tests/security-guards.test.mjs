@@ -218,3 +218,12 @@ test('release foundation includes mobile navigation, legal links, favicon metada
  assert.match(workflow,/privacy\.html terms\.html 404\.html legal\.css legal\.js/);
  assert.match(sw,/contextkey-shell-v7/);
 });
+
+
+test('public page copy avoids em dashes and fabricated endorsement language', () => {
+  for (const page of ['index.html', 'privacy.html', 'terms.html', '404.html']) {
+    const content = readFileSync(new URL('../' + page, import.meta.url), 'utf8');
+    assert.doesNotMatch(content, /—/);
+    assert.doesNotMatch(content, /made with ai|made with al|customer reviews|trusted by \d+/i);
+  }
+});
