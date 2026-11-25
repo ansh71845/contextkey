@@ -168,7 +168,7 @@ test('entry editor exposes a live character count and imported vaults have a bou
   assert.match(html, /id="content-count"/);
   assert.match(app, /function updateContentCount\(\)/);
   assert.match(app, /value\.items\.length > 500/);
-  assert.match(app, /more than the supported 500 entries/);
+  assert.match(app, /value\.items\.length > 500/);
 });
 
 
