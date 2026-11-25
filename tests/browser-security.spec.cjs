@@ -8,6 +8,8 @@ const PASS_B = 'contextkey-test-passphrase-B-2026';
 
 async function createVault(page, passphrase) {
   await page.goto(BASE_URL);
+  await page.locator('a[href="./privacy.html"]').waitFor({ state: 'visible' });
+  await page.locator('a[href="./terms.html"]').waitFor({ state: 'visible' });
   await page.locator('#new-pass').fill(passphrase);
   await page.locator('#confirm-pass').fill(passphrase);
   await page.locator('#create-vault').click();
@@ -191,8 +193,12 @@ async function main() {
     assert.ok(legalWidth.content <= legalWidth.viewport, 'privacy page must not overflow horizontally');
     await responsivePage.goto(BASE_URL + 'terms.html');
     assert.match(await responsivePage.title(), /Terms and Conditions/);
+    const termsWidth = await responsivePage.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
+    assert.ok(termsWidth.content <= termsWidth.viewport, 'terms page must not overflow horizontally');
     await responsivePage.goto(BASE_URL + '404.html');
     assert.match(await responsivePage.title(), /Page Not Found/);
+    const notFoundWidth = await responsivePage.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
+    assert.ok(notFoundWidth.content <= notFoundWidth.viewport, '404 page must not overflow horizontally');
     await responsivePage.goto(BASE_URL);
     await responsivePage.locator('#unlock-pass').fill(PASS_A);
     await responsivePage.locator('#unlock-vault').click();
