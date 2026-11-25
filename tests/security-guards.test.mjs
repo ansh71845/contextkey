@@ -118,7 +118,7 @@ test('storage errors do not commit an unsaved entry to the in-memory vault', () 
 });
 
 test('service worker cache is versioned and offline HTML fallback is navigation-only', () => {
-  assert.match(sw, /contextkey-shell-v10/);
+  assert.match(sw, /contextkey-shell-v11/);
   assert.match(sw, /event\.request\.mode === 'navigate'/);
   const fetchHandler = sw.slice(sw.indexOf("self.addEventListener('fetch'"));
   assert.match(fetchHandler, /if \(event\.request\.mode === 'navigate'\) return caches\.match\('\.\/index\.html'\)/);
@@ -251,7 +251,7 @@ test('Markdown and text imports are local, bounded, editable, selectable, and pr
   assert.match(app, /data-markdown-title/);
   assert.match(app, /data-markdown-content/);
   assert.match(app, /await persistVault\(nextVault\)/);
-  assert.match(sw, /contextkey-shell-v10/);
+  assert.match(sw, /contextkey-shell-v11/);
 });
 
 
@@ -261,7 +261,7 @@ test('release foundation includes mobile navigation, legal links, favicon metada
  assert.match(html,/rel="apple-touch-icon"/); assert.match(app,/function closeMobileMenu\(/);
  assert.match(app,/event\.key === 'Escape'/); assert.match(css,/overflow-x:hidden/);
  assert.match(workflow,/privacy\.html terms\.html 404\.html legal\.css legal\.js/);
- assert.match(sw,/contextkey-shell-v10/);
+ assert.match(sw,/contextkey-shell-v11/);
 });
 
 
@@ -291,4 +291,25 @@ test('all local links and assets on public HTML pages resolve', () => {
       assert.ok(existsSync(fileUrl), page + ' has a broken local reference: ' + target);
     }
   }
+});
+
+
+test('encrypted backup decoding rejects non-canonical base64 and strict vault validation rejects silent repair', () => {
+  assert.match(app, /bytesToBase64\\(salt\\) !== envelope\\.salt/);
+  assert.match(app, /bytesToBase64\\(iv\\) !== envelope\\.iv/);
+  assert.match(app, /bytesToBase64\\(data\\) !== envelope\\.data/);
+  assert.match(app, /function validateBackupVault\\(value\\)/);
+  assert.match(app, /ids\\.has\\(item\\.id\\)/);
+  assert.match(app, /!SECTION_ORDER\\.includes\\(item\\.section\\)/);
+  assert.match(app, /typeof item\\.shareable !== 'boolean'/);
+});
+
+test('restore binds confirmation to the exact verified backup snapshot', () => {
+  assert.match(app, /restoreVerifiedSnapshot = JSON\\.stringify\\(pendingBackup\\)/);
+  assert.match(app, /JSON\\.stringify\\(pendingBackup\\) !== restoreVerifiedSnapshot/);
+  const start = app.indexOf('function confirmRestore');
+  const end = app.indexOf('\\nasync function wipeVault', start);
+  const restore = app.slice(start, end);
+  assert.ok(restore.indexOf('decodeVaultEnvelope(pendingBackup)') < restore.indexOf('localStorage.setItem'));
+  assert.match(restore, /localStorage\\.setItem\\(STORAGE_KEY, restoreVerifiedSnapshot\\)/);
 });
