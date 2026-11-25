@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -16,43 +17,62 @@ concurrency:
 
 jobs:
   deploy:
+    timeout-minutes: 25
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - name: Set up Node.js for regression checks
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
+          package-manager-cache: false
       - name: Run static regression tests
         run: node --test tests/*.test.mjs
       - name: Install browser test dependency
-        run: npm install --no-save --no-package-lock playwright@1.56.1
+        run: npm install --no-save --no-package-lock playwright@1.65.1
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
       - name: Run browser regression tests
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/contextkey-http.log 2>&1 &
           SERVER_PID=$!
           trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
           for attempt in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then READY=1; break; fi
             sleep 1
           done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/contextkey-http.log
+            exit 1
+          fi
           node tests/browser-security.spec.cjs
       - name: Prepare public site bundle
         run: |
           mkdir -p _site
           cp index.html styles.css app.js manifest.webmanifest sw.js icon.svg icon-192.png icon-512.png privacy.html terms.html 404.html legal.css legal.js _site/
+      - name: Verify public bundle contains no repository-only files
+        run: |
+          test -f _site/index.html
+          test -f _site/privacy.html
+          test -f _site/terms.html
+          test -f _site/404.html
+          test ! -e _site/README.md
+          test ! -e _site/tests
+          test ! -e _site/SECURITY.md
+          test ! -e _site/PRODUCT_PLAN.md
       - name: Upload site
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: _site
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
