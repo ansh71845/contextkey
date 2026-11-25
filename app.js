@@ -17,6 +17,7 @@ let pendingBackup = null;
 let restoreVerified = false;
 let restoreInProgress = false;
 let isSaving = false;
+let sessionGeneration = 0;
 let pendingPortableItems = [];
 let pendingMarkdownItems = [];
 
@@ -263,6 +264,7 @@ async function unlockVault() {
   }
 }
 function clearSession() {
+  sessionGeneration += 1;
   vault = null;
   cryptoKey = null;
   vaultSalt = null;
@@ -388,6 +390,7 @@ async function handleItemSubmit(event) {
   const title = $('item-name').value.trim();
   const content = $('item-content').value.trim();
   if (!title || !content) return;
+  const saveGeneration = sessionGeneration;
   const now = new Date().toISOString();
   const nextVault = { version: 1, items: vault.items.map((item) => ({ ...item })) };
   if (editingId) {
@@ -408,6 +411,7 @@ async function handleItemSubmit(event) {
   setButtonBusy($('save-item'), true, 'Saving…');
   try {
     await persistVault(nextVault);
+    if (saveGeneration !== sessionGeneration) return;
     vault = nextVault;
     resetItemForm();
     renderAll();
@@ -460,24 +464,30 @@ function requestConfirmation({ title, message, acceptLabel = 'Continue', danger 
   });
 }
 async function deleteItem(id) {
+  if (!vault || isSaving) return;
+  const saveGeneration = sessionGeneration;
   const item = vault.items.find((entry) => entry.id === id);
   if (!item) return;
   const confirmed = await requestConfirmation({
     title: 'Delete this entry?',
-    message: `“${item.title}” will be removed from this device's vault. This cannot be undone unless you have an encrypted backup.`,
+    message: \`“\${item.title}” will be removed from this device's vault. This cannot be undone unless you have an encrypted backup.\`,
     acceptLabel: 'Delete entry',
     danger: true
   });
-  if (!confirmed) return;
+  if (!confirmed || !vault || isSaving || saveGeneration !== sessionGeneration) return;
   const nextVault = { version: 1, items: vault.items.filter((entry) => entry.id !== id) };
+  isSaving = true;
   try {
     await persistVault(nextVault);
+    if (saveGeneration !== sessionGeneration) return;
     vault = nextVault;
     selectedIds.delete(id);
     renderAll();
     showToast('Entry deleted from this device.');
   } catch (error) {
     showToast(storageErrorMessage(error, error.message || 'Could not delete this entry.'));
+  } finally {
+    isSaving = false;
   }
 }
 function makePack() {
@@ -604,6 +614,7 @@ function closeRestoreDialog() {
 }
 async function restoreBackup(file) {
   if (!file) return;
+  if (isSaving) return showToast('Finish the current save before restoring a backup.');
   try {
     if (file.size > 7 * 1024 * 1024) {
       throw new Error('This backup is larger than the supported 7 MiB limit.');
@@ -659,6 +670,10 @@ async function verifyBackup() {
 }
 function confirmRestore() {
   if (!pendingBackup || !restoreVerified || restoreInProgress) return;
+  if (isSaving) {
+    $('restore-confirm-error').textContent = 'Finish the current save before restoring a backup.';
+    return;
+  }
   restoreInProgress = true;
   setButtonBusy($('confirm-restore'), true, 'Restoring…');
   try {
@@ -674,13 +689,14 @@ function confirmRestore() {
   }
 }
 async function wipeVault() {
+  if (isSaving) return showToast('Finish the current save before deleting the vault.');
   const confirmed = await requestConfirmation({
     title: 'Delete this vault?',
     message: 'All ContextKey vault data saved in this browser will be deleted. This cannot be undone unless you have an encrypted backup.',
     acceptLabel: 'Delete vault data',
     danger: true
   });
-  if (!confirmed) return;
+  if (!confirmed || isSaving) return;
   try {
     localStorage.removeItem(STORAGE_KEY);
     clearSession();
@@ -834,6 +850,7 @@ async function previewPortableImport(file) {
 
 async function confirmPortableImport() {
   if (!vault || !pendingPortableItems.length || isSaving) return;
+  const saveGeneration = sessionGeneration;
   const selected = new Set([...$('portable-import-list').querySelectorAll('[data-import-id]:checked')]
     .map((input) => input.dataset.importId));
   const additions = pendingPortableItems.filter((item) => selected.has(item.id));
@@ -851,6 +868,7 @@ async function confirmPortableImport() {
   try {
     const nextVault = { version: 1, items: [...vault.items.map((item) => ({ ...item })), ...additions.map((item) => ({ ...item }))] };
     await persistVault(nextVault);
+    if (saveGeneration !== sessionGeneration) return;
     vault = nextVault;
     closePortableImport();
     renderAll();
@@ -973,6 +991,7 @@ async function previewMarkdownImport(file) {
 }
 async function confirmMarkdownImport() {
   if (!vault || !pendingMarkdownItems.length || isSaving) return;
+  const saveGeneration = sessionGeneration;
   const additions = [];
   for (let index = 0; index < pendingMarkdownItems.length; index += 1) {
     const checkbox = $('markdown-import-list').querySelector('[data-markdown-index="' + index + '"]');
@@ -999,6 +1018,7 @@ async function confirmMarkdownImport() {
   try {
     const nextVault = { version: 1, items: [...vault.items.map((item) => ({ ...item })), ...additions] };
     await persistVault(nextVault);
+    if (saveGeneration !== sessionGeneration) return;
     vault = nextVault;
     closeMarkdownImport();
     renderAll();
@@ -1040,13 +1060,14 @@ function init() {
   $('unlock-pass').addEventListener('keydown', (event) => { if (event.key === 'Enter') unlockVault(); });
   document.querySelectorAll('.restore-from-gate').forEach((button) => button.addEventListener('click', () => $('restore-file').click()));
   $('reset-vault').addEventListener('click', async () => {
+    if (isSaving) return showToast('Finish the current save before resetting the vault.');
     const confirmed = await requestConfirmation({
       title: 'Reset this device vault?',
       message: 'This deletes the encrypted vault saved in this browser. It cannot recover a forgotten passphrase. Continue only if you have a backup or accept losing this device copy.',
       acceptLabel: 'Reset this device',
       danger: true
     });
-    if (!confirmed) return;
+    if (!confirmed || isSaving) return;
     try {
       localStorage.removeItem(STORAGE_KEY);
       clearSession();
