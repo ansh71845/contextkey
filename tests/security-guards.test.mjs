@@ -213,12 +213,14 @@ test('vault loading rejects malformed and oversized entries instead of silently 
   assert.doesNotMatch(loader, /item\.(?:title|content)\.slice/);
 });
 
-test('locking invalidates pending save sessions before they can repopulate decrypted UI state', () => {
+test('locking waits for pending encrypted saves and then invalidates the decrypted session', () => {
   assert.match(app, /let sessionGeneration = 0/);
   assert.match(app, /sessionGeneration \+= 1/);
   assert.match(app, /saveGeneration !== sessionGeneration/);
-  assert.match(app, /function lockVault\(\)\s*\{\s*clearSession\(\)/);
-});
+  assert.match(app, /function lockVault\(\)\s*\{\s*if \(isSaving\)/);
+  assert.match(app, /lockRequested = true/);
+  assert.match(app, /if \(lockRequested\) lockVault\(\)/);
+};
 
 test('Markdown import preserves preamble text and does not split headings inside fenced code', () => {
   const start = app.indexOf('function parseMarkdownMemory(text, filename)');
