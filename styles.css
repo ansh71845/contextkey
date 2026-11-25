@@ -929,7 +929,7 @@ img,svg,video,canvas{max-width:100%}
 @media(max-width:700px){
  .main-layout{position:relative}
  .mobile-menu-toggle{display:inline-flex}
- .topbar{position:relative;z-index:30}
+ .topbar{z-index:30}
  .topbar-actions{margin-left:auto}
  .side-panel{position:absolute;top:0;left:0;right:0;z-index:25;display:none;padding:14px 16px;border:1px solid var(--line);border-top:0;border-radius:0 0 6px 6px;background:var(--surface);box-shadow:0 12px 24px rgba(25,38,30,.12)}
  .side-panel.is-open{display:block}
