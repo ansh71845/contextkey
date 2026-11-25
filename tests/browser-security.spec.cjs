@@ -180,6 +180,7 @@ async function main() {
     assert.equal(await responsivePage.locator('#mobile-menu-toggle').getAttribute('aria-expanded'), 'true');
     await responsivePage.locator('#mobile-menu-toggle').press('Escape');
     assert.equal(await responsivePage.locator('#mobile-menu-toggle').getAttribute('aria-expanded'), 'false', 'Escape should close the mobile menu');
+    assert.equal(await responsivePage.evaluate(() => document.activeElement.id), 'mobile-menu-toggle', 'Escape should return focus to the menu control');
     await navigate(responsivePage, 'library');
     const mobileWidth = await responsivePage.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
