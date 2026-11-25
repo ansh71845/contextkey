@@ -214,6 +214,17 @@ async function main() {
     assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 1,
       'unsupported backup metadata must not alter the existing vault');
 
+    const nonCanonicalEnvelope = JSON.parse(backupBuffer.toString('utf8'));
+    nonCanonicalEnvelope.salt = nonCanonicalEnvelope.salt.slice(0, -3) + 'B==';
+    await restorePage.locator('#restore-file').setInputFiles({
+      name: 'corrupt-base64.ckvault',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(nonCanonicalEnvelope))
+    });
+    await restorePage.getByText('This backup has invalid encryption data or exceeds the supported size.').waitFor();
+    assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 1,
+      'non-canonical base64 must be rejected before restore verification');
+
     const malformedBackup = await restorePage.evaluate(async (passphrase) => {
       const salt = crypto.getRandomValues(new Uint8Array(16));
       const key = await deriveKey(passphrase, salt);
@@ -233,7 +244,7 @@ async function main() {
     await restorePage.locator('#restore-dialog').waitFor({ state: 'visible' });
     await restorePage.locator('#restore-passphrase').fill(PASS_B);
     await restorePage.locator('#verify-backup').click();
-    await restorePage.getByText('Entry 2 is malformed. No vault data was changed.').waitFor();
+    await restorePage.getByText('Backup entry 2 is invalid or unsupported. No vault data was changed.').waitFor();
     assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 1,
       'malformed encrypted backup must not change the current vault');
     await restorePage.locator('#cancel-restore').click();
