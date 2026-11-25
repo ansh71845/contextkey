@@ -115,7 +115,9 @@ test('service worker cache is versioned and offline HTML fallback is navigation-
 
 test('design system includes responsive layout, visible focus and reduced-motion support', () => {
   assert.match(css, /--canvas: #f2efe7/);
-  assert.match(css, /--green: #205442/);
+  assert.match(css, /--green: #1f5846/);
+  assert.match(css, /--sea-glass: #89aa9b/);
+  assert.doesNotMatch(css, /seal-drift|radial-gradient/);
   assert.match(css, /:focus-visible/);
   assert.match(css, /@media \(max-width: 700px\)/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
@@ -140,7 +142,8 @@ test('secondary typography and input hints meet WCAG AA contrast on primary surf
   assert.ok(contrastRatio(soft, canvas) >= 4.5, 'secondary labels must meet 4.5:1 on the canvas');
   assert.ok(contrastRatio(soft, surface) >= 4.5, 'secondary labels must meet 4.5:1 on white surfaces');
   assert.ok(contrastRatio(muted, canvas) >= 4.5, 'body copy must meet 4.5:1 on the canvas');
-  assert.ok(contrastRatio('#65736a', surface) >= 4.5, 'input hints must meet 4.5:1 on white surfaces');
+  assert.ok(contrastRatio(muted, surface) >= 4.5, 'input hints must meet 4.5:1 on white surfaces');
+  assert.match(css, /::placeholder[^}]*color: var\\(--muted\\)/s);
 });
 
 test('library filters distinguish private, share-ready, and category entries', () => {
