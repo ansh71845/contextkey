@@ -49,10 +49,21 @@ async function verifyDataIntegrityHelpers(page) {
   assert.equal(valid.count, 2, 'strict backup validation must retain all valid entries');
   assert.equal(valid.content, 'Preserve every character. ', 'backup validation must preserve content exactly');
 
-  const markdown = await page.evaluate(() => parseMarkdownMemory(
-    'Intro text before the first heading.\n\n# Profile\nA profile detail.\n\n```md\n## This heading belongs to code\n```\n\n## Project\nA project detail.',
-    'notes.md'
-  ).map((entry) => ({ title: entry.title, content: entry.content })));
+  const markdownSource = [
+    'Intro text before the first heading.',
+    '',
+    '# Profile',
+    'A profile detail.',
+    '',
+    '```md',
+    '## This heading belongs to code',
+    '```',
+    '',
+    '## Project',
+    'A project detail.'
+  ].join('\\n');
+  const markdown = await page.evaluate((source) => parseMarkdownMemory(source, 'notes.md')
+    .map((entry) => ({ title: entry.title, content: entry.content })), markdownSource);
   assert.equal(markdown.length, 3, 'Markdown preamble and both real headings should become entries');
   assert.equal(markdown[0].title, 'Introduction');
   assert.match(markdown[0].content, /Intro text before the first heading/);
