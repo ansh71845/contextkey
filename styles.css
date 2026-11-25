@@ -602,10 +602,10 @@ button, input, select, textarea { font-size: 14px; }
   background: var(--green); color: #fffdf8;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.13);
 }
-.brand-mark svg { width: 23px; height: 23px; }
+.brand-mark svg { width: 23px; height: 23px; fill: none; stroke: none; }
 .brand-large { font-size: 19px; }
 .brand-large .brand-mark { width: 43px; height: 43px; border-radius: 9px; }
-.brand-large .brand-mark svg { width: 27px; height: 27px; }
+.brand-large .brand-mark svg { width: 27px; height: 27px; fill: none; stroke: none; }
 
 .gate-shell { position: relative; overflow: hidden; padding: clamp(28px, 6vw, 76px); }
 .gate-shell::before {
