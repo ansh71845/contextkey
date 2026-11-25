@@ -12,6 +12,7 @@
   --green: #1f5846;
   --green-deep: #173f32;
   --green-pale: #e5eee8;
+  --sea-glass: #89aa9b;
   --green-tint: #f1f5f0;
   --danger: #984b3e;
   --danger-pale: #f8ece7;
@@ -181,7 +182,7 @@ svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColo
   transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
 }
 .field-group textarea { min-height: 126px; resize: vertical; line-height: 1.65; }
-.field-group input::placeholder, .field-group textarea::placeholder, .gate-fields input::placeholder, .search-wrap input::placeholder { color: #55665c; }
+.field-group input::placeholder, .field-group textarea::placeholder, .gate-fields input::placeholder, .search-wrap input::placeholder { color: var(--muted); }
 .field-group input:focus, .field-group select:focus, .field-group textarea:focus,
 .gate-fields input:focus, .select-panel select:focus, .search-wrap:focus-within {
   border-color: #72927e;
@@ -571,6 +572,7 @@ svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColo
   --danger: #984b3e;
   --danger-pale: #f8ece7;
   --copper: #925331;
+  --sea-glass: #89aa9b;
   --shadow: 0 18px 46px rgba(28, 48, 41, .075);
   --radius: 12px;
   --font-body: Inter, "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, sans-serif;
