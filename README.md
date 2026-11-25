@@ -1,4 +1,4 @@
-# ContextKey — Local-First AI Context Wallet
+# ContextKey: Local-First AI Context Wallet
 
 **Version:** 0.3 (experimental MVP)  
 

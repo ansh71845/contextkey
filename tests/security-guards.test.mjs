@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -6,6 +6,7 @@ const app = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
 const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+const workflow = readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8');
 
 function relativeLuminance(hex) {
   const channels = hex.replace('#', '').match(/.{2}/g).map((part) => parseInt(part, 16) / 255);
@@ -106,10 +107,10 @@ test('storage errors do not commit an unsaved entry to the in-memory vault', () 
 });
 
 test('service worker cache is versioned and offline HTML fallback is navigation-only', () => {
-  assert.match(sw, /contextkey-shell-v6/);
+  assert.match(sw, /contextkey-shell-v7/);
   assert.match(sw, /event\.request\.mode === 'navigate'/);
   const fetchHandler = sw.slice(sw.indexOf("self.addEventListener('fetch'"));
-  assert.match(fetchHandler, /catch\(\(\) => caches\.match\('\.\/index\.html'\)\)/);
+  assert.match(fetchHandler, /catch\(\(\) => caches\.match\(event\.request\)\.then\(\(cached\) => cached \|\| caches\.match\('\.\/index\.html'\)\)\)/);
 });
 
 test('design system includes responsive layout, visible focus and reduced-motion support', () => {
@@ -205,5 +206,44 @@ test('Markdown and text imports are local, bounded, editable, selectable, and pr
   assert.match(app, /data-markdown-title/);
   assert.match(app, /data-markdown-content/);
   assert.match(app, /await persistVault\(nextVault\)/);
-  assert.match(sw, /contextkey-shell-v6/);
+  assert.match(sw, /contextkey-shell-v7/);
+});
+
+
+test('release foundation includes mobile navigation, legal links, favicon metadata, and overflow guard', () => {
+ assert.match(html,/id="mobile-menu-toggle"/); assert.match(html,/id="workspace-navigation"/);
+ assert.match(html,/href="\.\/privacy\.html"/); assert.match(html,/href="\.\/terms\.html"/);
+ assert.match(html,/rel="apple-touch-icon"/); assert.match(app,/function closeMobileMenu\(/);
+ assert.match(app,/event\.key === 'Escape'/); assert.match(css,/overflow-x:hidden/);
+ assert.match(workflow,/privacy\.html terms\.html 404\.html legal\.css legal\.js/);
+ assert.match(sw,/contextkey-shell-v7/);
+});
+
+
+test('public page copy avoids em dashes and fabricated endorsement language', () => {
+  for (const page of ['index.html', 'privacy.html', 'terms.html', '404.html']) {
+    const content = readFileSync(new URL('../' + page, import.meta.url), 'utf8');
+    assert.doesNotMatch(content, /—/);
+    assert.doesNotMatch(content, /made with ai|made with al|customer reviews|trusted by \d+/i);
+  }
+});
+
+
+test('all local links and assets on public HTML pages resolve', () => {
+  const pages = ['index.html', 'privacy.html', 'terms.html', '404.html'];
+  for (const page of pages) {
+    const source = readFileSync(new URL('../' + page, import.meta.url), 'utf8');
+    const ids = new Set([...source.matchAll(/id="([^"]+)"/g)].map((match) => match[1]));
+    for (const match of source.matchAll(/(?:href|src)="([^"]+)"/g)) {
+      const target = match[1];
+      if (target.includes(':') || target.startsWith('//')) continue;
+      if (target.startsWith('#')) {
+        assert.ok(ids.has(target.slice(1)), page + ' has a broken in-page link: ' + target);
+        continue;
+      }
+      const resolved = new URL(target, new URL('../' + page, import.meta.url));
+      const fileUrl = resolved.pathname.endsWith('/') ? new URL('index.html', resolved) : resolved;
+      assert.ok(existsSync(fileUrl), page + ' has a broken local reference: ' + target);
+    }
+  }
 });

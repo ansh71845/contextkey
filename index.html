@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f2efe7">
   <meta name="color-scheme" content="light">
   <meta name="description" content="A private, local-first place to organise useful context and choose exactly what you share with AI assistants.">
-  <meta property="og:title" content="ContextKey — your context, on your terms">
+  <meta property="og:title" content="ContextKey: Your context, on your terms">
   <meta property="og:description" content="Keep useful context in an encrypted on-device vault. Share only what you choose.">
   <meta name="application-name" content="ContextKey">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,8 +14,9 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self';">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
-  <title>ContextKey — your context, on your terms</title>
+  <title>ContextKey: Your context, on your terms</title>
 </head>
 <body>
   <a id="skip-link" class="skip-link" href="#gate-title">Skip to vault access</a>
@@ -29,8 +30,8 @@
           <span>ContextKey</span>
         </a>
         <p class="eyebrow">A PRIVATE CONTEXT WORKSPACE</p>
-        <h1 id="gate-story-title">Carry your context.<br><em>Keep control.</em></h1>
-        <p class="gate-intro">A quiet place for the details that make your work yours. Keep them on this device, then choose what belongs in each conversation.</p>
+        <h1 id="gate-story-title">A private vault for<br><em>your AI context.</em></h1>
+        <p class="gate-intro">Save useful preferences, project details and working rules on this device. Select only the entries you want to include in each context pack.</p>
         <div class="gate-principles" aria-label="ContextKey principles">
           <div><span class="principle-check" aria-hidden="true">✓</span><span><strong>Stored here</strong><small>Your vault stays in this browser.</small></span></div>
           <div><span class="principle-check" aria-hidden="true">✓</span><span><strong>Shared by choice</strong><small>Private entries never enter a pack.</small></span></div>
@@ -83,6 +84,7 @@
         <div class="access-foot"><span class="small-lock" aria-hidden="true">●</span><span>Encrypted in your browser. No cloud vault.</span></div>
       </div>
     </div>
+  <footer class="gate-footer"><span>© <span data-current-year>2026</span> ContextKey</span><nav class="legal-footer-links" aria-label="Legal information"><a href="./privacy.html">Privacy Policy</a><a href="./terms.html">Terms and Conditions</a></nav></footer>
   </section>
 
   <div id="app" class="app-shell" hidden>
@@ -93,6 +95,7 @@
         </span>
         <span>ContextKey</span>
       </a>
+      <button id="mobile-menu-toggle" class="mobile-menu-toggle" type="button" aria-controls="workspace-navigation" aria-expanded="false" aria-label="Open navigation menu"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/></svg><span>Menu</span></button>
       <div class="topbar-actions">
         <span class="device-status"><span class="status-dot" aria-hidden="true"></span><span>Stored on this device</span></span>
         <button id="lock-button" class="lock-button" type="button" aria-label="Lock vault" title="Lock vault">
@@ -103,7 +106,7 @@
     </header>
 
     <main class="main-layout">
-      <aside class="side-panel">
+      <aside id="workspace-navigation" class="side-panel">
         <p class="nav-label">WORKSPACE</p>
         <nav class="nav-list" aria-label="Main navigation">
           <button class="nav-item active" data-view="overview" aria-current="page" type="button">
@@ -131,7 +134,7 @@
           <div class="page-heading">
             <div>
               <p class="eyebrow">YOUR WORKSPACE</p>
-              <h1>A clear picture of<br><em>what you keep.</em></h1>
+              <h1>Your context,<br><em>organised.</em></h1>
               <p class="subtitle">Keep the details that help you work, learn and think. Bring only the relevant ones into a conversation.</p>
             </div>
             <div class="heading-note"><span class="status-dot" aria-hidden="true"></span> Your vault is local</div>
@@ -266,6 +269,7 @@
 
         <footer class="app-footer">
           <span>CONTEXTKEY <span aria-hidden="true">·</span> EXPERIMENTAL MVP</span>
+          <nav class="legal-footer-links" aria-label="Legal information"><a href="./privacy.html">Privacy</a><a href="./terms.html">Terms</a></nav>
           <div class="footer-actions">
             <button id="export-backup-footer" class="footer-button" type="button">Encrypted backup</button>
             <button id="restore-backup-footer" class="footer-button" type="button">Restore backup</button>

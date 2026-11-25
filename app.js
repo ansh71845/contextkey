@@ -119,13 +119,14 @@ function showToast(message) {
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
 }
 function showGate(mode, error = '') {
+  closeMobileMenu();
   $('skip-link').href = '#gate-title';
   $('gate').hidden = false;
   $('app').hidden = true;
   $('setup-fields').hidden = mode !== 'setup';
   $('unlock-fields').hidden = mode !== 'unlock';
   $('gate-error').textContent = error;
-  $('gate-title').innerHTML = mode === 'setup' ? 'Create your vault.<br><em>Keep it yours.</em>' : 'Your context.<br><em>Your choice.</em>';
+  $('gate-title').innerHTML = mode === 'setup' ? 'Create your<br><em>context vault.</em>' : 'Unlock your<br><em>context vault.</em>';
   if (mode === 'unlock') $('unlock-pass').focus();
   if (mode === 'setup') $('new-pass').focus();
 }
@@ -267,6 +268,16 @@ function lockVault() {
   clearSession();
   showGate('unlock');
 }
+function closeMobileMenu(restoreFocus = false) {
+  const toggle = $('mobile-menu-toggle');
+  const navigation = $('workspace-navigation');
+  if (!toggle || !navigation) return;
+  const wasOpen = navigation.classList.contains('is-open');
+  navigation.classList.remove('is-open');
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-label', 'Open navigation menu');
+  if (restoreFocus && wasOpen && toggle.getClientRects().length) toggle.focus();
+}
 function setView(name) {
   const allowed = ['overview', 'library', 'share'];
   if (!allowed.includes(name)) return;
@@ -281,6 +292,7 @@ function setView(name) {
     if (active) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
   });
+  closeMobileMenu(true);
   if (name === 'share') renderPackBuilder();
   window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
@@ -939,6 +951,7 @@ async function confirmMarkdownImport() {
 
 function init() {
   initPasswordToggles();
+  document.querySelectorAll('[data-current-year]').forEach((node) => { node.textContent = String(new Date().getFullYear()); });
   let existing;
   try {
     existing = localStorage.getItem(STORAGE_KEY);
@@ -981,6 +994,14 @@ function init() {
     }
   });
   $('lock-button').addEventListener('click', lockVault);
+  $('mobile-menu-toggle').addEventListener('click', () => {
+    const navigation = $('workspace-navigation');
+    const opening = !navigation.classList.contains('is-open');
+    navigation.classList.toggle('is-open', opening);
+    $('mobile-menu-toggle').setAttribute('aria-expanded', String(opening));
+    $('mobile-menu-toggle').setAttribute('aria-label', opening ? 'Close navigation menu' : 'Open navigation menu');
+  });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeMobileMenu(true); });
   $('item-form').addEventListener('submit', handleItemSubmit);
   $('portable-export').addEventListener('click', exportPortableContext);
   $('portable-import').addEventListener('click', () => $('portable-import-file').click());

@@ -340,7 +340,7 @@ svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColo
 .form-card, .library-list-panel, .select-panel, .preview-panel { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .form-card { display: grid; gap: 13px; }
 .card-topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.status-pill, .count-pill { display: inline-flex; min-height: 22px; align-items: center; justify-content: center; padding: 3px 8px; border: 1px solid #d7e1d8; border-radius: 999px; background: #f2f6f1; color: var(--green); font-size: 9px; font-weight: 700; white-space: nowrap; }
+.status-pill, .count-pill { display: inline-flex; min-height: 22px; align-items: center; justify-content: center; padding: 3px 8px; border: 1px solid #d7e1d8; border-radius: 4px; background: #f2f6f1; color: var(--green); font-size: 9px; font-weight: 700; white-space: nowrap; }
 .form-card h2 { margin-bottom: 4px; }
 .card-description { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
 .form-card .field-group { gap: 6px; }
@@ -552,7 +552,7 @@ svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColo
 
 
 
-/* ContextKey design system refresh — archival workspace, not a generic AI dashboard. */
+/* ContextKey design system refresh: archival workspace, not a generic AI dashboard. */
 :root {
   color-scheme: light;
   --canvas: #f2efe7;
@@ -916,3 +916,26 @@ button, input, select, textarea { font-size: 14px; }
 .markdown-edit-label{display:grid;gap:5px;color:var(--soft);font-size:11px}
 .markdown-edit-label input,.markdown-edit-label textarea{width:100%;min-width:0;padding:9px;border:1px solid var(--line);border-radius:5px;background:var(--canvas);color:var(--ink);font:inherit;font-size:12px;line-height:1.5}
 .markdown-edit-label textarea{resize:vertical}
+
+/* Release readiness */
+html,body{max-width:100%;overflow-x:hidden}
+.main-layout,.content-panel,.view{min-width:0}
+img,svg,video,canvas{max-width:100%}
+.mobile-menu-toggle{display:none;align-items:center;gap:7px;min-height:40px;padding:0 10px;border:1px solid var(--line-strong);border-radius:5px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.mobile-menu-toggle svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
+.legal-footer-links{display:flex;gap:14px}
+.legal-footer-links a{color:var(--muted);font-size:11px;text-decoration:underline;text-underline-offset:3px}
+.legal-footer-links a:hover{color:var(--ink)}
+@media(max-width:700px){
+ .main-layout{position:relative}
+ .mobile-menu-toggle{display:inline-flex}
+ .topbar{z-index:30}
+ .topbar-actions{margin-left:auto}
+ .side-panel{position:absolute;top:0;left:0;right:0;z-index:25;display:none;padding:14px 16px;border:1px solid var(--line);border-top:0;border-radius:0 0 6px 6px;background:var(--surface);box-shadow:0 12px 24px rgba(25,38,30,.12)}
+ .side-panel.is-open{display:block}
+ .nav-label{display:block;margin:0 0 9px}
+ .nav-list{grid-template-columns:1fr;gap:4px}
+ .nav-item{justify-content:flex-start;min-height:44px;padding:0 12px;font-size:12px}
+}
+
+.gate-footer{display:flex;justify-content:center;align-items:center;gap:20px;flex-wrap:wrap;width:min(100%,980px);margin:24px auto 0;padding:16px 20px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}

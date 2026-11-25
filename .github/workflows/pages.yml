@@ -34,7 +34,7 @@ jobs:
       - name: Prepare public site bundle
         run: |
           mkdir -p _site
-          cp index.html styles.css app.js manifest.webmanifest sw.js icon.svg icon-192.png icon-512.png _site/
+          cp index.html styles.css app.js manifest.webmanifest sw.js icon.svg icon-192.png icon-512.png privacy.html terms.html 404.html legal.css legal.js _site/
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
