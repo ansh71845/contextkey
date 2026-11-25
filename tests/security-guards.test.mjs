@@ -193,3 +193,17 @@ test('portable import requires explicit item selection and confirmation', () => 
   assert.match(app, /querySelectorAll\('\[data-import-id\]:checked'\)/);
   assert.match(html, /Import selected/);
 });
+
+
+test('Markdown and text imports are local, bounded, editable, selectable, and private by default', () => {
+  assert.match(html, /id="markdown-import-file"/);
+  assert.match(html, /id="markdown-import-dialog"/);
+  assert.match(html, /id="markdown-import-confirm"/);
+  assert.match(app, /function parseMarkdownMemory\(/);
+  assert.match(app, /file\.size > 100 \* 1024/);
+  assert.match(app, /shareable: false/);
+  assert.match(app, /data-markdown-title/);
+  assert.match(app, /data-markdown-content/);
+  assert.match(app, /await persistVault\(nextVault\)/);
+  assert.match(sw, /contextkey-shell-v6/);
+});
