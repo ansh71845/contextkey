@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'contextkey-shell-v6';
+const CACHE_NAME = 'contextkey-shell-v7';
 const APP_FILES = [
   './',
   './index.html',
@@ -10,7 +10,8 @@ const APP_FILES = [
   './sw.js',
   './icon.svg',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './privacy.html', './terms.html', './404.html', './legal.css', './legal.js'
 ];
 
 self.addEventListener('install', (event) => {
