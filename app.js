@@ -17,6 +17,7 @@ let pendingBackup = null;
 let restoreVerified = false;
 let restoreInProgress = false;
 let isSaving = false;
+let lockRequested = false;
 let sessionGeneration = 0;
 let pendingPortableItems = [];
 let pendingMarkdownItems = [];
@@ -290,6 +291,12 @@ function clearSession() {
   if ($('restore-file')) $('restore-file').value = '';
 }
 function lockVault() {
+  if (isSaving) {
+    lockRequested = true;
+    showToast('Finishing the current encrypted save, then locking.');
+    return;
+  }
+  lockRequested = false;
   clearSession();
   showGate('unlock');
 }
@@ -421,6 +428,7 @@ async function handleItemSubmit(event) {
   } finally {
     isSaving = false;
     setButtonBusy($('save-item'), false);
+    if (lockRequested) lockVault();
   }
 }
 function editItem(id) {
@@ -488,6 +496,7 @@ async function deleteItem(id) {
     showToast(storageErrorMessage(error, error.message || 'Could not delete this entry.'));
   } finally {
     isSaving = false;
+    if (lockRequested) lockVault();
   }
 }
 function makePack() {
@@ -878,6 +887,7 @@ async function confirmPortableImport() {
   } finally {
     isSaving = false;
     setButtonBusy($('portable-import-confirm'), false);
+    if (lockRequested) lockVault();
   }
 }
 
@@ -1028,6 +1038,7 @@ async function confirmMarkdownImport() {
   } finally {
     isSaving = false;
     setButtonBusy($('markdown-import-confirm'), false);
+    if (lockRequested) lockVault();
   }
 }
 
