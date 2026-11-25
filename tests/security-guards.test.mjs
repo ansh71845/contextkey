@@ -611,11 +611,11 @@ test('encrypted backup decoding rejects non-canonical base64 and strict vault va
 });
 
 test('restore binds confirmation to the exact verified backup snapshot', () => {
-  assert.match(app, /restoreVerifiedSnapshot = JSON\\.stringify\\(pendingBackup\\)/);
-  assert.match(app, /JSON\\.stringify\\(pendingBackup\\) !== restoreVerifiedSnapshot/);
+  assert.ok(app.includes('restoreVerifiedSnapshot = JSON.stringify(pendingBackup)'));
+  assert.ok(app.includes('JSON.stringify(pendingBackup) !== restoreVerifiedSnapshot'));
   const start = app.indexOf('function confirmRestore');
-  const end = app.indexOf('\\nasync function wipeVault', start);
+  const end = app.indexOf('async function wipeVault', start);
   const restore = app.slice(start, end);
   assert.ok(restore.indexOf('decodeVaultEnvelope(pendingBackup)') < restore.indexOf('localStorage.setItem'));
-  assert.match(restore, /localStorage\\.setItem\\(STORAGE_KEY, restoreVerifiedSnapshot\\)/);
+  assert.ok(restore.includes('localStorage.setItem(STORAGE_KEY, restoreVerifiedSnapshot)'));
 });
