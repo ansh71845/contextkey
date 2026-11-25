@@ -18,6 +18,7 @@ let restoreVerified = false;
 let restoreInProgress = false;
 let isSaving = false;
 let pendingPortableItems = [];
+let pendingMarkdownItems = [];
 
 const SECTION_ORDER = ['About', 'Goals', 'Preferences', 'Skills', 'Projects', 'Rules'];
 const SECTION_LABELS = {
@@ -831,6 +832,111 @@ function selectPortableImports(checked) {
   $('portable-import-list').querySelectorAll('[data-import-id]').forEach((input) => { input.checked = checked; });
 }
 
+
+function parseMarkdownMemory(text, filename) {
+  const normalized = String(text).replace(/\r\n?/g, '\n').replace(/\u0000/g, '').trim();
+  if (!normalized) throw new Error('This file is empty.');
+  const lines = normalized.split('\n');
+  const sections = [];
+  let current = null;
+  for (const line of lines) {
+    const heading = line.match(/^#{1,3}\s+(.+?)\s*#*$/);
+    if (heading) {
+      current = { title: heading[1].trim(), lines: [] };
+      sections.push(current);
+    } else if (current) current.lines.push(line);
+  }
+  let entries = sections.length
+    ? sections.map((section) => ({ title: section.title, content: section.lines.join('\n').trim() })).filter((item) => item.content)
+    : [{ title: String(filename || 'Imported note').replace(/\.(md|markdown|txt)$/i, '').slice(0, 70) || 'Imported note', content: normalized }];
+  if (entries.length > 50) throw new Error('This file contains more than 50 sections. Split it into smaller files and import them separately.');
+  if (entries.some((item) => item.title.length > 70 || item.content.length > 1400)) {
+    throw new Error('One or more sections exceed the current limits (70 characters per title and 1,400 per entry). Split long sections into smaller headings and try again.');
+  }
+  return entries.map((item) => ({ title: item.title, content: item.content, section: 'About', shareable: false }));
+}
+function closeMarkdownImport() {
+  const dialog = $('markdown-import-dialog');
+  if (dialog.open) dialog.close();
+  pendingMarkdownItems = [];
+  $('markdown-import-list').replaceChildren();
+  $('markdown-import-file').value = '';
+  $('markdown-import-summary').textContent = '';
+  $('markdown-import-error').textContent = '';
+  $('markdown-import-confirm').disabled = true;
+}
+function renderMarkdownImport(items) {
+  const existing = new Set(vault.items.map(portableEntryFingerprint));
+  const seen = new Set();
+  const candidates = [];
+  let duplicates = 0;
+  for (const item of items) {
+    const fingerprint = portableEntryFingerprint(item);
+    if (existing.has(fingerprint) || seen.has(fingerprint)) { duplicates += 1; continue; }
+    seen.add(fingerprint);
+    candidates.push(item);
+  }
+  pendingMarkdownItems = candidates;
+  $('markdown-import-summary').textContent = candidates.length + ' possible entries · ' + duplicates + ' duplicates skipped · all entries default to private.';
+  $('markdown-import-list').innerHTML = candidates.length ? candidates.map((item, index) =>
+    '<article class="markdown-import-item"><label class="markdown-import-heading"><input type="checkbox" data-markdown-index="' + index + '" checked><span>Include entry ' + (index + 1) + '</span></label>' +
+    '<label class="markdown-edit-label">Title<input type="text" maxlength="70" data-markdown-title="' + index + '" value="' + escapeHtml(item.title) + '"></label>' +
+    '<label class="markdown-edit-label">Content<textarea maxlength="1400" rows="4" data-markdown-content="' + index + '">' + escapeHtml(item.content) + '</textarea></label></article>'
+  ).join('') : '<p class="portable-import-empty">No new entries were found.</p>';
+  $('markdown-import-confirm').disabled = candidates.length === 0;
+  $('markdown-import-dialog').showModal();
+}
+async function previewMarkdownImport(file) {
+  if (!file) return;
+  try {
+    if (file.size > 100 * 1024) throw new Error('Notes files must be 100 KiB or smaller.');
+    const parsed = parseMarkdownMemory(await file.text(), file.name);
+    renderMarkdownImport(parsed);
+  } catch (error) {
+    showToast(error.message || 'Could not read this notes file.');
+    $('markdown-import-file').value = '';
+  }
+}
+async function confirmMarkdownImport() {
+  if (!vault || !pendingMarkdownItems.length || isSaving) return;
+  const additions = [];
+  for (let index = 0; index < pendingMarkdownItems.length; index += 1) {
+    const checkbox = $('markdown-import-list').querySelector('[data-markdown-index="' + index + '"]');
+    if (!checkbox || !checkbox.checked) continue;
+    const title = $('markdown-import-list').querySelector('[data-markdown-title="' + index + '"]').value.trim();
+    const content = $('markdown-import-list').querySelector('[data-markdown-content="' + index + '"]').value.trim();
+    if (!title || !content || title.length > 70 || content.length > 1400) {
+      $('markdown-import-error').textContent = 'Every selected entry needs a title and content within the displayed limits.';
+      return;
+    }
+    additions.push({ id: newItemId(), section: 'About', title, content, shareable: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  }
+  if (!additions.length) {
+    $('markdown-import-error').textContent = 'Select at least one entry to import.';
+    return;
+  }
+  if (vault.items.length + additions.length > PORTABLE_MAX_ENTRIES) {
+    $('markdown-import-error').textContent = 'This would exceed the 500-entry vault limit.';
+    return;
+  }
+  isSaving = true;
+  setButtonBusy($('markdown-import-confirm'), true, 'Importing…');
+  $('markdown-import-error').textContent = '';
+  try {
+    const nextVault = { version: 1, items: [...vault.items.map((item) => ({ ...item })), ...additions] };
+    await persistVault(nextVault);
+    vault = nextVault;
+    closeMarkdownImport();
+    renderAll();
+    showToast(additions.length + ' private entries imported into your encrypted vault.');
+  } catch (error) {
+    $('markdown-import-error').textContent = storageErrorMessage(error, error.message || 'Could not import these notes.');
+  } finally {
+    isSaving = false;
+    setButtonBusy($('markdown-import-confirm'), false);
+  }
+}
+
 function init() {
   initPasswordToggles();
   let existing;
@@ -878,6 +984,12 @@ function init() {
   $('item-form').addEventListener('submit', handleItemSubmit);
   $('portable-export').addEventListener('click', exportPortableContext);
   $('portable-import').addEventListener('click', () => $('portable-import-file').click());
+  $('markdown-import').addEventListener('click', () => $('markdown-import-file').click());
+  $('markdown-import-file').addEventListener('change', (event) => previewMarkdownImport(event.target.files[0]));
+  $('markdown-import-confirm').addEventListener('click', confirmMarkdownImport);
+  $('markdown-import-cancel').addEventListener('click', closeMarkdownImport);
+  $('markdown-import-close').addEventListener('click', closeMarkdownImport);
+  $('markdown-import-dialog').addEventListener('close', () => { if (pendingMarkdownItems.length) closeMarkdownImport(); });
   $('portable-import-file').addEventListener('change', (event) => previewPortableImport(event.target.files[0]));
   $('portable-import-confirm').addEventListener('click', confirmPortableImport);
   $('portable-import-cancel').addEventListener('click', closePortableImport);
