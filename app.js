@@ -272,10 +272,11 @@ function closeMobileMenu(restoreFocus = false) {
   const toggle = $('mobile-menu-toggle');
   const navigation = $('workspace-navigation');
   if (!toggle || !navigation) return;
+  const wasOpen = navigation.classList.contains('is-open');
   navigation.classList.remove('is-open');
   toggle.setAttribute('aria-expanded', 'false');
   toggle.setAttribute('aria-label', 'Open navigation menu');
-  if (restoreFocus && toggle.getClientRects().length) toggle.focus();
+  if (restoreFocus && wasOpen && toggle.getClientRects().length) toggle.focus();
 }
 function setView(name) {
   const allowed = ['overview', 'library', 'share'];
