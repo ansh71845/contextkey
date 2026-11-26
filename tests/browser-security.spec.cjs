@@ -334,6 +334,53 @@ async function main() {
     const backupBuffer = fs.readFileSync(backupPath);
     await backupContext.close();
 
+    const staleRestoreReadContext = await browser.newContext(mobile);
+    const staleRestoreReadPage = await staleRestoreReadContext.newPage();
+    await createVault(staleRestoreReadPage, PASS_A);
+    await addEntry(staleRestoreReadPage, 'Current before stale read', 'A delayed read failure must not disturb this vault.', true);
+    await staleRestoreReadPage.evaluate(() => {
+      const originalText = File.prototype.text;
+      window.__staleRestoreReadStarted = false;
+      File.prototype.text = function () {
+        if (this.name === 'delayed-stale-failure.ckvault') {
+          window.__staleRestoreReadStarted = true;
+          return new Promise((resolve, reject) => setTimeout(
+            () => reject(new Error('stale restore file read failure')), 700
+          ));
+        }
+        return originalText.call(this);
+      };
+      const toast = document.getElementById('toast');
+      toast.classList.remove('show');
+      toast.textContent = '';
+    });
+    await staleRestoreReadPage.locator('#restore-file').setInputFiles({
+      name: 'delayed-stale-failure.ckvault',
+      mimeType: 'application/json',
+      buffer: Buffer.from('delayed invalid backup')
+    });
+    await staleRestoreReadPage.waitForFunction(() => window.__staleRestoreReadStarted === true);
+    await staleRestoreReadPage.locator('#restore-file').setInputFiles({
+      name: 'latest-valid-backup.ckvault',
+      mimeType: 'application/json',
+      buffer: backupBuffer
+    });
+    await staleRestoreReadPage.locator('#restore-dialog').waitFor({ state: 'visible' });
+    assert.equal(await staleRestoreReadPage.evaluate(() => pendingBackup?.format), 'contextkey-vault',
+      'the latest valid backup should own the restore dialog');
+    await staleRestoreReadPage.waitForTimeout(800);
+    assert.equal(await staleRestoreReadPage.evaluate(() => {
+      const toast = document.getElementById('toast');
+      return toast.classList.contains('show') && toast.textContent.includes('stale restore file read failure');
+    }), false, 'a stale file-read rejection must not replace the active restore UI with an old error');
+    await staleRestoreReadPage.locator('#restore-passphrase').fill(PASS_B);
+    await staleRestoreReadPage.locator('#verify-backup').click();
+    await staleRestoreReadPage.getByRole('heading', { name: 'Backup verified' }).waitFor();
+    await staleRestoreReadPage.locator('#cancel-restore').click();
+    assert.equal(await staleRestoreReadPage.getByText('Current before stale read', { exact: true }).count(), 1,
+      'the current vault must remain intact after a stale rejected file read');
+    await staleRestoreReadContext.close();
+
     const restoreContext = await browser.newContext(mobile);
     const restorePage = await restoreContext.newPage();
     await createVault(restorePage, PASS_A);
