@@ -1217,7 +1217,9 @@ function init() {
   $('confirm-restore').addEventListener('click', confirmRestore);
   $('cancel-restore').addEventListener('click', closeRestoreDialog);
   $('close-restore').addEventListener('click', closeRestoreDialog);
-  $('restore-dialog').addEventListener('close', clearRestoreState);
+  $('restore-dialog').addEventListener('close', () => {
+    if (pendingBackup || restoreVerified || restoreInProgress) clearRestoreState();
+  });
   $('wipe-vault').addEventListener('click', wipeVault);
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     window.addEventListener('load', () => {
