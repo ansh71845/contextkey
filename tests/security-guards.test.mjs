@@ -46,7 +46,7 @@ test('vault envelopes validate salt, IV, and ciphertext lengths before decryptin
 
 test('locking removes decrypted DOM content and clears local editing state', () => {
   const start = app.indexOf('function clearSession()');
-  const end = app.indexOf('\nfunction lockVault()', start);
+  const end = app.indexOf('\nfunction finishPendingLock()', start);
   assert.notEqual(start, -1);
   assert.notEqual(end, -1);
   const clear = app.slice(start, end);
@@ -61,15 +61,15 @@ test('locking removes decrypted DOM content and clears local editing state', () 
   assert.match(app, /fileGeneration !== portableImportGeneration \|\| importSession !== sessionGeneration \|\| !vault/);
   assert.match(app, /fileGeneration !== markdownImportGeneration \|\| importSession !== sessionGeneration \|\| !vault/);
 
-  assert.match(app, /function lockVault\(\)\s*\{\s*if \(isSaving\)/);
+  assert.match(app, /function lockVault\\(mode = 'unlock', broadcast = true, error = ''\\)[\\s\\S]*?if \\(isSaving\\)/);
   assert.match(app, /lockRequested = true/);
-  assert.match(app, /if \(lockRequested\) lockVault\(\)/);
+  assert.match(app, /function finishPendingLock\(\)/);
 });
 
 test('saves encrypt the proposed vault before committing it to in-memory state', () => {
   assert.match(app, /async function persistVault\(nextVault = vault/);
   assert.match(app, /const encrypted = await encryptObject\(nextVault, key, salt\)/);
-  assert.match(app, /localStorage\.setItem\(STORAGE_KEY, JSON\.stringify\(encrypted\)\)/);
+  assert.match(app, /localStorage\.setItem\(STORAGE_KEY, serialized\)/);
   const saveStart = app.indexOf('async function handleItemSubmit');
   const saveEnd = app.indexOf('\nfunction editItem', saveStart);
   const save = app.slice(saveStart, saveEnd);
@@ -235,7 +235,7 @@ test('locking waits for pending encrypted saves and then invalidates the decrypt
   assert.match(app, /let sessionGeneration = 0/);
   assert.match(app, /sessionGeneration \+= 1/);
   assert.match(app, /saveGeneration !== sessionGeneration/);
-  assert.match(app, /function lockVault\(\)\s*\{\s*if \(isSaving\)/);
+  assert.match(app, /function lockVault\\(mode = 'unlock', broadcast = true, error = ''\\)[\\s\\S]*?if \\(isSaving\\)/);
   assert.match(app, /lockRequested = true/);
   assert.match(app, /if \(lockRequested\) lockVault\(\)/);
 });
@@ -347,4 +347,20 @@ test('restore binds confirmation to the exact verified backup snapshot', () => {
   const restore = app.slice(start, end);
   assert.ok(restore.indexOf('decodeVaultEnvelope(pendingBackup)') < restore.indexOf('localStorage.setItem'));
   assert.ok(restore.includes('localStorage.setItem(STORAGE_KEY, restoreVerifiedSnapshot)'));
+});
+
+test('same-origin tabs serialize writes, reject stale snapshots, and coordinate locks without sharing vault data', () => {
+  assert.match(app, /const VAULT_STORAGE_LOCK = 'contextkey-vault-write-v1'/);
+  assert.match(app, /navigator\.locks\.request\(VAULT_STORAGE_LOCK, \{ mode: 'exclusive' \}/);
+  assert.match(app, /const expectedSnapshot = vaultStorageSnapshot/);
+  assert.match(app, /currentSnapshot !== expectedSnapshot/);
+  assert.match(app, /name = 'VaultConflictError'/);
+  assert.match(app, /function initCrossTabCoordination\(\)/);
+  assert.match(app, /addEventListener\('storage'/);
+  assert.match(app, /new BroadcastChannel\('contextkey-session-v1'\)/);
+  assert.match(app, /postMessage\(\{ type: 'lock', version: 1 \}\)/);
+  assert.match(app, /event\.data\?\.type !== 'lock'/);
+  assert.match(app, /Vault changed in another tab/);
+  assert.match(app, /vaultStorageSnapshot = storedSnapshot/);
+  assert.match(app, /localStorage\.getItem\(STORAGE_KEY\) !== storedSnapshot/);
 });
