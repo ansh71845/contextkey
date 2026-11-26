@@ -349,12 +349,16 @@ async function unlockVault() {
 function clearSession() {
   sessionGeneration += 1;
   vaultStorageSnapshot = null;
+  lockRequested = false;
+  lockAfterSaveMode = 'unlock';
+  lockAfterSaveError = '';
   vault = null;
   cryptoKey = null;
   vaultSalt = null;
   editingId = null;
   selectedIds.clear();
   packInitialized = false;
+  closeRestoreDialog();
   closePortableImport();
   closeMarkdownImport();
   ['context-list', 'pack-items'].forEach((id) => { if ($(id)) $(id).replaceChildren(); });
