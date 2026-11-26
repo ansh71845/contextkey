@@ -306,6 +306,18 @@ test('encrypted backup decoding rejects non-canonical base64 and strict vault va
   assert.ok(app.includes("typeof item.shareable !== 'boolean'"));
 });
 
+test('normal vault unlock keeps legacy normalization separate from strict backup restore validation', () => {
+  assert.ok(app.includes('function normalizeStoredVault(value)'));
+  const unlockStart = app.indexOf('async function unlockVault');
+  const unlockEnd = app.indexOf('function clearSession', unlockStart);
+  const unlock = app.slice(unlockStart, unlockEnd);
+  assert.match(unlock, /decryptVaultEnvelope\\(stored, pass, normalizeStoredVault\\)/);
+  const restoreStart = app.indexOf('async function verifyBackup');
+  const restoreEnd = app.indexOf('function confirmRestore', restoreStart);
+  const restore = app.slice(restoreStart, restoreEnd);
+  assert.match(restore, /decryptVaultEnvelope\\(pendingBackup, passphrase, validateBackupVault\\)/);
+});
+
 test('restore binds confirmation to the exact verified backup snapshot', () => {
   assert.ok(app.includes('restoreVerifiedSnapshot = JSON.stringify(pendingBackup)'));
   assert.ok(app.includes('JSON.stringify(pendingBackup) !== restoreVerifiedSnapshot'));
