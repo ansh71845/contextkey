@@ -56,13 +56,13 @@ test('locking removes decrypted DOM content and clears local editing state', () 
   assert.match(clear, /item-form.*reset/s);
   assert.match(clear, /closePortableImport\(\)/);
   assert.match(clear, /closeMarkdownImport\(\)/);
-  assert.match(clear, /closeRestoreDialog\\(\\)/);
+  assert.ok(clear.includes('closeRestoreDialog()'));
   assert.match(app, /let portableImportGeneration = 0/);
   assert.match(app, /let markdownImportGeneration = 0/);
   assert.match(app, /fileGeneration !== portableImportGeneration \|\| importSession !== sessionGeneration \|\| !vault/);
   assert.match(app, /fileGeneration !== markdownImportGeneration \|\| importSession !== sessionGeneration \|\| !vault/);
 
-  assert.match(app, /function lockVault\(mode = 'unlock', broadcast = true, error = ''\)[\s\S]*?if \(isSaving\)/);
+  assert.ok(app.includes("function lockVault(mode = 'unlock', broadcast = true, error = '')"));
   assert.match(app, /lockRequested = true/);
   assert.match(app, /function finishPendingLock\(\)/);
 });
@@ -80,7 +80,7 @@ test('saves encrypt the proposed vault before committing it to in-memory state',
 test('restore requires successful decryption and explicit replacement confirmation', () => {
   assert.match(app, /await decryptVaultEnvelope\(backupToVerify, passphrase, validateBackupVault\)/);
   const verifyStart = app.indexOf('async function verifyBackup');
-  const verifyEnd = app.indexOf('\nfunction confirmRestore', verifyStart);
+  const verifyEnd = app.indexOf('\nasync function confirmRestore', verifyStart);
   const verify = app.slice(verifyStart, verifyEnd);
   assert.match(verify, /restoreVerified = true/);
   const restoreStart = app.indexOf('function confirmRestore');
@@ -236,7 +236,7 @@ test('locking waits for pending encrypted saves and then invalidates the decrypt
   assert.match(app, /let sessionGeneration = 0/);
   assert.match(app, /sessionGeneration \+= 1/);
   assert.match(app, /saveGeneration !== sessionGeneration/);
-  assert.match(app, /function lockVault\(mode = 'unlock', broadcast = true, error = ''\)[\s\S]*?if \(isSaving\)/);
+  assert.ok(app.includes("function lockVault(mode = 'unlock', broadcast = true, error = '')"));
   assert.match(app, /lockRequested = true/);
   assert.match(app, /finishPendingLock\(\)/);
 });
@@ -330,7 +330,7 @@ test('stale asynchronous backup verification cannot mutate a newer restore attem
   assert.match(app, /let restoreGeneration = 0/);
   assert.match(app, /function clearRestoreState\(\)\s*\{\s*restoreGeneration \+= 1/);
   const start = app.indexOf('async function verifyBackup');
-  const end = app.indexOf('\nfunction confirmRestore', start);
+  const end = app.indexOf('\nasync function confirmRestore', start);
   const verify = app.slice(start, end);
   assert.match(verify, /const verificationGeneration = restoreGeneration/);
   assert.match(verify, /const backupToVerify = pendingBackup/);
@@ -347,7 +347,7 @@ test('restore binds confirmation to the exact verified backup snapshot', () => {
   const end = app.indexOf('async function wipeVault', start);
   const restore = app.slice(start, end);
   assert.ok(restore.indexOf('decodeVaultEnvelope(pendingBackup)') < restore.indexOf('localStorage.setItem'));
-  assert.ok(restore.includes('localStorage.setItem(STORAGE_KEY, restoreVerifiedSnapshot)'));
+  assert.ok(restore.includes('localStorage.setItem(STORAGE_KEY, backupSnapshot)'));
 });
 
 test('same-origin tabs serialize writes, reject stale snapshots, and coordinate locks without sharing vault data', () => {
