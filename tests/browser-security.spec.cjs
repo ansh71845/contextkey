@@ -620,11 +620,12 @@ async function main() {
     await untrustedContentPage.locator('#markdown-import-dialog').waitFor({ state: 'visible' });
     const markdownInjection = await untrustedContentPage.evaluate(() => ({
       elements: document.querySelectorAll('#markdown-import-list img, #markdown-import-list svg, #markdown-import-list script').length,
-      text: document.querySelector('#markdown-import-list')?.textContent || ''
+      title: document.querySelector('#markdown-import-list [data-markdown-title="0"]')?.value || '',
+      content: document.querySelector('#markdown-import-list [data-markdown-content="0"]')?.value || ''
     }));
     assert.equal(markdownInjection.elements, 0, 'Markdown preview must render imported content as literal text');
-    assert.ok(markdownInjection.text.includes(markdownAttackTitle));
-    assert.ok(markdownInjection.text.includes(markdownAttackContent));
+    assert.equal(markdownInjection.title, markdownAttackTitle, 'Markdown heading should remain literal input text');
+    assert.equal(markdownInjection.content, markdownAttackContent, 'Markdown content should remain literal textarea text');
     assert.equal(await untrustedContentPage.evaluate(() => window.__contextKeyXss || 0), 0);
     await untrustedContentPage.locator('#markdown-import-cancel').click();
     await untrustedContentContext.close();
