@@ -54,6 +54,13 @@ test('locking removes decrypted DOM content and clears local editing state', () 
     assert.ok(clear.includes(id), `lock cleanup must clear ${id}`);
   }
   assert.match(clear, /item-form.*reset/s);
+  assert.match(clear, /closePortableImport\(\)/);
+  assert.match(clear, /closeMarkdownImport\(\)/);
+  assert.match(app, /let portableImportGeneration = 0/);
+  assert.match(app, /let markdownImportGeneration = 0/);
+  assert.match(app, /fileGeneration !== portableImportGeneration \|\| importSession !== sessionGeneration \|\| !vault/);
+  assert.match(app, /fileGeneration !== markdownImportGeneration \|\| importSession !== sessionGeneration \|\| !vault/);
+
   assert.match(app, /function lockVault\(\)\s*\{\s*if \(isSaving\)/);
   assert.match(app, /lockRequested = true/);
   assert.match(app, /if \(lockRequested\) lockVault\(\)/);
