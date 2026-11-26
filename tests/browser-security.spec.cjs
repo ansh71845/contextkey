@@ -290,6 +290,10 @@ async function main() {
     const markdownLockContext = await browser.newContext(mobile);
     const markdownLockPage = await markdownLockContext.newPage();
     await createVault(markdownLockPage, PASS_A);
+    const markdownFixture = '# Sensitive Markdown preview\nPrivate imported note.';
+    assert.deepEqual(await markdownLockPage.evaluate((text) => parseMarkdownMemory(text, 'fixture.md'), markdownFixture), [
+      { title: 'Sensitive Markdown preview', content: 'Private imported note.', section: 'About', shareable: false }
+    ]);
     await markdownLockPage.evaluate(() => {
       const originalText = File.prototype.text;
       File.prototype.text = function () {
@@ -302,7 +306,7 @@ async function main() {
     });
     await markdownLockPage.locator('#markdown-import-file').setInputFiles({
       name: 'delayed-private.md', mimeType: 'text/markdown',
-      buffer: Buffer.from('# Sensitive Markdown preview\\nPrivate imported note.')
+      buffer: Buffer.from(markdownFixture)
     });
     await markdownLockPage.waitForFunction(() => markdownImportGeneration > 0);
     await markdownLockPage.locator('#lock-button').click();
