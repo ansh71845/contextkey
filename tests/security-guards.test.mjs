@@ -70,7 +70,7 @@ test('saves encrypt the proposed vault before committing it to in-memory state',
 });
 
 test('restore requires successful decryption and explicit replacement confirmation', () => {
-  assert.match(app, /await decryptVaultEnvelope\(pendingBackup, passphrase, validateBackupVault\)/);
+  assert.match(app, /await decryptVaultEnvelope\(backupToVerify, passphrase, validateBackupVault\)/);
   const verifyStart = app.indexOf('async function verifyBackup');
   const verifyEnd = app.indexOf('\nfunction confirmRestore', verifyStart);
   const verify = app.slice(verifyStart, verifyEnd);
@@ -315,7 +315,7 @@ test('normal vault unlock keeps legacy normalization separate from strict backup
   const restoreStart = app.indexOf('async function verifyBackup');
   const restoreEnd = app.indexOf('function confirmRestore', restoreStart);
   const restore = app.slice(restoreStart, restoreEnd);
-  assert.match(restore, /decryptVaultEnvelope\(pendingBackup, passphrase, validateBackupVault\)/);
+  assert.match(restore, /decryptVaultEnvelope\(backupToVerify, passphrase, validateBackupVault\)/);
 });
 
 test('stale asynchronous backup verification cannot mutate a newer restore attempt', () => {
