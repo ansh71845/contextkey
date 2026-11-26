@@ -128,7 +128,52 @@ function validateBackupVault(value) {
   });
   return { version: 1, items };
 }
-async function decryptVaultEnvelope(envelope, passphrase) {
+function normalizeStoredVault(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      value.version !== 1 || !Array.isArray(value.items)) {
+    throw new Error('This backup does not contain a supported ContextKey vault. No vault data was changed.');
+  }
+  if (value.items.length > 500) {
+    throw new Error('This vault contains more than the supported 500 entries. No vault data was changed.');
+  }
+  const seenIds = new Set();
+  const items = value.items.map((item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item) ||
+        typeof item.title !== 'string' || typeof item.content !== 'string' ||
+        !item.title.trim() || !item.content.trim()) {
+      throw new Error('Entry ' + (index + 1) + ' is malformed. No vault data was changed.');
+    }
+    if (item.title.length > 70 || item.content.length > 1400) {
+      throw new Error('Entry ' + (index + 1) + ' exceeds the supported title or content limit. No vault data was changed.');
+    }
+
+    let id = typeof item.id === 'string' && item.id.trim() && item.id.length <= 100
+      ? item.id
+      : newItemId();
+    while (seenIds.has(id)) id = newItemId();
+    seenIds.add(id);
+
+    const now = new Date().toISOString();
+    const createdAt = typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt))
+      ? item.createdAt
+      : now;
+    const updatedAt = typeof item.updatedAt === 'string' && Number.isFinite(Date.parse(item.updatedAt))
+      ? item.updatedAt
+      : now;
+
+    return {
+      id,
+      section: SECTION_ORDER.includes(item.section) ? item.section : 'About',
+      title: item.title,
+      content: item.content,
+      shareable: item.shareable === true,
+      createdAt,
+      updatedAt
+    };
+  });
+  return { version: 1, items };
+}
+async function decryptVaultEnvelope(envelope, passphrase, validateVault) {
   const { salt, iv, data } = decodeVaultEnvelope(envelope);
   const key = await deriveKey(passphrase, salt, envelope.iterations);
   const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
@@ -138,7 +183,10 @@ async function decryptVaultEnvelope(envelope, passphrase) {
   } catch {
     throw new Error('The encrypted backup contents are not valid JSON. No vault data was changed.');
   }
-  const restoredVault = validateBackupVault(parsed);
+  if (typeof validateVault !== 'function') {
+    throw new Error('Vault validation mode is required. No vault data was changed.');
+  }
+  const restoredVault = validateVault(parsed);
   return { vault: restoredVault, key, salt };
 }
 async function persistVault(nextVault = vault, key = cryptoKey, salt = vaultSalt) {
@@ -238,7 +286,7 @@ async function unlockVault() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
     if (!stored) throw new Error('Vault data is missing or invalid.');
-    const unlocked = await decryptVaultEnvelope(stored, pass);
+    const unlocked = await decryptVaultEnvelope(stored, pass, normalizeStoredVault);
     vaultSalt = unlocked.salt;
     cryptoKey = unlocked.key;
     vault = unlocked.vault;
@@ -657,7 +705,7 @@ async function verifyBackup() {
   setButtonBusy($('verify-backup'), true, 'Verifying…');
   $('restore-error').textContent = '';
   try {
-    const result = await decryptVaultEnvelope(pendingBackup, passphrase);
+    const result = await decryptVaultEnvelope(pendingBackup, passphrase, validateBackupVault);
     const itemCount = result.vault.items.length;
     restoreVerified = true;
     restoreVerifiedSnapshot = JSON.stringify(pendingBackup);

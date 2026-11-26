@@ -70,7 +70,7 @@ test('saves encrypt the proposed vault before committing it to in-memory state',
 });
 
 test('restore requires successful decryption and explicit replacement confirmation', () => {
-  assert.match(app, /await decryptVaultEnvelope\(pendingBackup, passphrase\)/);
+  assert.match(app, /await decryptVaultEnvelope\(pendingBackup, passphrase, validateBackupVault\)/);
   const verifyStart = app.indexOf('async function verifyBackup');
   const verifyEnd = app.indexOf('\nfunction confirmRestore', verifyStart);
   const verify = app.slice(verifyStart, verifyEnd);
@@ -304,6 +304,18 @@ test('encrypted backup decoding rejects non-canonical base64 and strict vault va
   assert.ok(app.includes('ids.has(item.id)'));
   assert.ok(app.includes('!SECTION_ORDER.includes(item.section)'));
   assert.ok(app.includes("typeof item.shareable !== 'boolean'"));
+});
+
+test('normal vault unlock keeps legacy normalization separate from strict backup restore validation', () => {
+  assert.ok(app.includes('function normalizeStoredVault(value)'));
+  const unlockStart = app.indexOf('async function unlockVault');
+  const unlockEnd = app.indexOf('function clearSession', unlockStart);
+  const unlock = app.slice(unlockStart, unlockEnd);
+  assert.match(unlock, /decryptVaultEnvelope\(stored, pass, normalizeStoredVault\)/);
+  const restoreStart = app.indexOf('async function verifyBackup');
+  const restoreEnd = app.indexOf('function confirmRestore', restoreStart);
+  const restore = app.slice(restoreStart, restoreEnd);
+  assert.match(restore, /decryptVaultEnvelope\(pendingBackup, passphrase, validateBackupVault\)/);
 });
 
 test('restore binds confirmation to the exact verified backup snapshot', () => {

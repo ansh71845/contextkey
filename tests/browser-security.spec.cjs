@@ -48,6 +48,32 @@ async function verifyDataIntegrityHelpers(page) {
   }, now);
   assert.equal(valid.count, 2, 'strict backup validation must retain all valid entries');
   assert.equal(valid.content, 'Preserve every character. ', 'backup validation must preserve content exactly');
+  const legacy = await page.evaluate(() => {
+    const result = normalizeStoredVault({
+      version: 1,
+      items: [
+        { id: 'duplicate-id', section: 'Unknown category', title: 'Legacy note', content: 'Preserve every character. ', shareable: 'yes', createdAt: 'invalid-date', updatedAt: 'invalid-date' },
+        { id: 'duplicate-id', section: 'Goals', title: 'Second note', content: 'Keep this entry too.', shareable: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+      ]
+    });
+    return {
+      count: result.items.length,
+      firstContent: result.items[0].content,
+      firstSection: result.items[0].section,
+      firstShareable: result.items[0].shareable,
+      idsDiffer: result.items[0].id !== result.items[1].id,
+      firstCreatedAtValid: Number.isFinite(Date.parse(result.items[0].createdAt)),
+      firstUpdatedAtValid: Number.isFinite(Date.parse(result.items[0].updatedAt))
+    };
+  });
+  assert.equal(legacy.count, 2, 'legacy vault loading must preserve every valid entry');
+  assert.equal(legacy.firstContent, 'Preserve every character. ', 'legacy normalization must preserve content exactly');
+  assert.equal(legacy.firstSection, 'About', 'unknown legacy categories must retain the established fallback');
+  assert.equal(legacy.firstShareable, false, 'unknown legacy sharing values must remain private');
+  assert.equal(legacy.idsDiffer, true, 'legacy duplicate IDs must be repaired without dropping entries');
+  assert.equal(legacy.firstCreatedAtValid, true, 'legacy invalid creation timestamps must be normalized');
+  assert.equal(legacy.firstUpdatedAtValid, true, 'legacy invalid update timestamps must be normalized');
+
 
   const markdownSource = [
     'Intro text before the first heading.',
@@ -181,7 +207,7 @@ async function main() {
     const persistedTitles = await lockRacePage.evaluate(async (passphrase) => {
       const envelope = JSON.parse(localStorage.getItem('contextkey.encrypted.v1') || 'null');
       if (!envelope) return [];
-      const decrypted = await decryptVaultEnvelope(envelope, passphrase);
+      const decrypted = await decryptVaultEnvelope(envelope, passphrase, normalizeStoredVault);
       return decrypted.vault.items.map((item) => item.title);
     }, PASS_A);
     assert.ok(persistedTitles.includes('Saved during lock'),
