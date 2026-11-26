@@ -207,7 +207,7 @@ async function main() {
     const persistedTitles = await lockRacePage.evaluate(async (passphrase) => {
       const envelope = JSON.parse(localStorage.getItem('contextkey.encrypted.v1') || 'null');
       if (!envelope) return [];
-      const decrypted = await decryptVaultEnvelope(envelope, passphrase);
+      const decrypted = await decryptVaultEnvelope(envelope, passphrase, normalizeStoredVault);
       return decrypted.vault.items.map((item) => item.title);
     }, PASS_A);
     assert.ok(persistedTitles.includes('Saved during lock'),
