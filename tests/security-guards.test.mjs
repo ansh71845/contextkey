@@ -318,8 +318,21 @@ test('normal vault unlock keeps legacy normalization separate from strict backup
   assert.match(restore, /decryptVaultEnvelope\(pendingBackup, passphrase, validateBackupVault\)/);
 });
 
+test('stale asynchronous backup verification cannot mutate a newer restore attempt', () => {
+  assert.match(app, /let restoreGeneration = 0/);
+  assert.match(app, /function clearRestoreState\(\)\s*\{\s*restoreGeneration \+= 1/);
+  const start = app.indexOf('async function verifyBackup');
+  const end = app.indexOf('\nfunction confirmRestore', start);
+  const verify = app.slice(start, end);
+  assert.match(verify, /const verificationGeneration = restoreGeneration/);
+  assert.match(verify, /const backupToVerify = pendingBackup/);
+  assert.match(verify, /verificationGeneration !== restoreGeneration \|\| pendingBackup !== backupToVerify/);
+  assert.match(verify, /if \(verificationGeneration === restoreGeneration\)/);
+  assert.match(app, /if \(fileGeneration !== restoreGeneration\) return/);
+});
+
 test('restore binds confirmation to the exact verified backup snapshot', () => {
-  assert.ok(app.includes('restoreVerifiedSnapshot = JSON.stringify(pendingBackup)'));
+  assert.ok(app.includes('restoreVerifiedSnapshot = JSON.stringify(backupToVerify)'));
   assert.ok(app.includes('JSON.stringify(pendingBackup) !== restoreVerifiedSnapshot'));
   const start = app.indexOf('function confirmRestore');
   const end = app.indexOf('async function wipeVault', start);
