@@ -20,7 +20,13 @@ let restoreGeneration = 0;
 let restoreInProgress = false;
 let isSaving = false;
 let lockRequested = false;
+let lockAfterSaveMode = 'unlock';
+let lockAfterSaveError = '';
+let vaultStorageSnapshot = null;
+let crossTabChannel = null;
 let sessionGeneration = 0;
+
+const VAULT_STORAGE_LOCK = 'contextkey-vault-write-v1';
 let pendingPortableItems = [];
 let pendingMarkdownItems = [];
 let portableImportGeneration = 0;
@@ -192,12 +198,31 @@ async function decryptVaultEnvelope(envelope, passphrase, validateVault) {
   const restoredVault = validateVault(parsed);
   return { vault: restoredVault, key, salt };
 }
+async function withVaultStorageLock(operation) {
+  if (navigator.locks && typeof navigator.locks.request === 'function') {
+    return navigator.locks.request(VAULT_STORAGE_LOCK, { mode: 'exclusive' }, operation);
+  }
+  return operation();
+}
+
 async function persistVault(nextVault = vault, key = cryptoKey, salt = vaultSalt) {
   if (!nextVault || !key || !salt) throw new Error('The vault is not ready to save.');
+  const expectedSnapshot = vaultStorageSnapshot;
   const encrypted = await encryptObject(nextVault, key, salt);
+  const serialized = JSON.stringify(encrypted);
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(encrypted));
+    await withVaultStorageLock(() => {
+      const currentSnapshot = localStorage.getItem(STORAGE_KEY);
+      if (currentSnapshot !== expectedSnapshot) {
+        const conflict = new Error('Vault changed in another tab. Your changes were not saved. Unlock the latest version before continuing.');
+        conflict.name = 'VaultConflictError';
+        throw conflict;
+      }
+      localStorage.setItem(STORAGE_KEY, serialized);
+    });
+    vaultStorageSnapshot = serialized;
   } catch (error) {
+    if (error?.name === 'VaultConflictError') throw error;
     const failure = new Error('Browser storage could not save this change. Check available device storage and try again.');
     failure.name = error?.name || 'StorageError';
     throw failure;
@@ -278,6 +303,7 @@ async function createVault() {
   } finally {
     isSaving = false;
     setButtonBusy($('create-vault'), false);
+    finishPendingLock();
   }
 }
 async function unlockVault() {
@@ -286,10 +312,19 @@ async function unlockVault() {
   if (!pass) return showGate('unlock', 'Enter your passphrase.');
   isSaving = true;
   setButtonBusy($('unlock-vault'), true, 'Unlocking…');
+  const unlockGeneration = sessionGeneration;
   try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    if (!stored) throw new Error('Vault data is missing or invalid.');
+    const storedSnapshot = localStorage.getItem(STORAGE_KEY);
+    const stored = JSON.parse(storedSnapshot || 'null');
+    if (!stored || !storedSnapshot) throw new Error('Vault data is missing or invalid.');
     const unlocked = await decryptVaultEnvelope(stored, pass, normalizeStoredVault);
+    if (unlockGeneration !== sessionGeneration || localStorage.getItem(STORAGE_KEY) !== storedSnapshot) {
+      const conflict = new Error('Vault changed in another tab while unlocking. Try again with the latest vault.');
+      conflict.name = 'VaultConflictError';
+      throw conflict;
+    }
+    if (lockRequested) throw new Error(lockAfterSaveError || 'A lock was requested from another tab. Unlock again to continue.');
+    vaultStorageSnapshot = storedSnapshot;
     vaultSalt = unlocked.salt;
     cryptoKey = unlocked.key;
     vault = unlocked.vault;
@@ -299,6 +334,7 @@ async function unlockVault() {
     cryptoKey = null;
     vault = null;
     vaultSalt = null;
+    vaultStorageSnapshot = null;
     $('unlock-pass').value = '';
     const message = error.name === 'OperationError'
       ? 'That passphrase did not unlock this vault.'
@@ -307,10 +343,12 @@ async function unlockVault() {
   } finally {
     isSaving = false;
     setButtonBusy($('unlock-vault'), false);
+    finishPendingLock();
   }
 }
 function clearSession() {
   sessionGeneration += 1;
+  vaultStorageSnapshot = null;
   vault = null;
   cryptoKey = null;
   vaultSalt = null;
@@ -337,15 +375,48 @@ function clearSession() {
   if ($('library-filter')) $('library-filter').value = 'all';
   if ($('restore-file')) $('restore-file').value = '';
 }
-function lockVault() {
+function finishPendingLock() {
+  if (!lockRequested) return;
+  const mode = lockAfterSaveMode;
+  const error = lockAfterSaveError;
+  lockRequested = false;
+  lockAfterSaveMode = 'unlock';
+  lockAfterSaveError = '';
+  lockVault(mode, false, error);
+}
+
+function lockVault(mode = 'unlock', broadcast = true, error = '') {
+  if (broadcast && crossTabChannel) {
+    try { crossTabChannel.postMessage({ type: 'lock', version: 1 }); } catch { /* Best-effort peer notification. */ }
+  }
   if (isSaving) {
     lockRequested = true;
-    showToast('Finishing the current encrypted save, then locking.');
+    lockAfterSaveMode = mode;
+    lockAfterSaveError = error;
+    showToast('Finishing the current encrypted operation, then locking.');
     return;
   }
   lockRequested = false;
+  lockAfterSaveMode = 'unlock';
+  lockAfterSaveError = '';
   clearSession();
-  showGate('unlock');
+  showGate(mode, error);
+}
+
+function initCrossTabCoordination() {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== STORAGE_KEY && event.key !== null) return;
+    const mode = event.newValue === null ? 'setup' : 'unlock';
+    lockVault(mode, false, 'Vault changed in another tab. Unlock the latest version to continue.');
+  });
+
+  if (typeof BroadcastChannel === 'function') {
+    crossTabChannel = new BroadcastChannel('contextkey-session-v1');
+    crossTabChannel.addEventListener('message', (event) => {
+      if (event.data?.type !== 'lock' || event.data?.version !== 1) return;
+      lockVault('unlock', false, 'This vault was locked from another tab. Unlock it to continue.');
+    });
+  }
 }
 function closeMobileMenu(restoreFocus = false) {
   const toggle = $('mobile-menu-toggle');
@@ -475,7 +546,7 @@ async function handleItemSubmit(event) {
   } finally {
     isSaving = false;
     setButtonBusy($('save-item'), false);
-    if (lockRequested) lockVault();
+    finishPendingLock();
   }
 }
 function editItem(id) {
@@ -543,7 +614,7 @@ async function deleteItem(id) {
     showToast(storageErrorMessage(error, error.message || 'Could not delete this entry.'));
   } finally {
     isSaving = false;
-    if (lockRequested) lockVault();
+    finishPendingLock();
   }
 }
 function makePack() {
@@ -745,7 +816,7 @@ async function verifyBackup() {
     }
   }
 }
-function confirmRestore() {
+async function confirmRestore() {
   if (!pendingBackup || !restoreVerified || restoreInProgress ||
       !restoreVerifiedSnapshot || JSON.stringify(pendingBackup) !== restoreVerifiedSnapshot) {
     $('restore-confirm-error').textContent = 'Verify this backup again before restoring it.';
@@ -759,7 +830,7 @@ function confirmRestore() {
   setButtonBusy($('confirm-restore'), true, 'Restoring…');
   try {
     decodeVaultEnvelope(pendingBackup);
-    localStorage.setItem(STORAGE_KEY, restoreVerifiedSnapshot);
+    await withVaultStorageLock(() => localStorage.setItem(STORAGE_KEY, restoreVerifiedSnapshot));
     closeRestoreDialog();
     lockVault();
     showToast('Backup restored. Unlock it with the passphrase used to create it.');
@@ -780,7 +851,7 @@ async function wipeVault() {
   });
   if (!confirmed || isSaving) return;
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    await withVaultStorageLock(() => localStorage.removeItem(STORAGE_KEY));
     clearSession();
     showGate('setup');
     showToast('Vault data deleted from this device.');
@@ -966,7 +1037,7 @@ async function confirmPortableImport() {
   } finally {
     isSaving = false;
     setButtonBusy($('portable-import-confirm'), false);
-    if (lockRequested) lockVault();
+    finishPendingLock();
   }
 }
 
@@ -1123,12 +1194,13 @@ async function confirmMarkdownImport() {
   } finally {
     isSaving = false;
     setButtonBusy($('markdown-import-confirm'), false);
-    if (lockRequested) lockVault();
+    finishPendingLock();
   }
 }
 
 function init() {
   initPasswordToggles();
+  initCrossTabCoordination();
   document.querySelectorAll('[data-current-year]').forEach((node) => { node.textContent = String(new Date().getFullYear()); });
   let existing;
   try {
@@ -1166,7 +1238,7 @@ function init() {
     });
     if (!confirmed || isSaving) return;
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      await withVaultStorageLock(() => localStorage.removeItem(STORAGE_KEY));
       clearSession();
       showGate('setup');
     } catch {
