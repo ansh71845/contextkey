@@ -411,7 +411,10 @@ function initCrossTabCoordination() {
   window.addEventListener('storage', (event) => {
     if (event.key !== STORAGE_KEY && event.key !== null) return;
     const mode = event.newValue === null ? 'setup' : 'unlock';
-    lockVault(mode, false, 'Vault changed in another tab. Unlock the latest version to continue.');
+    const message = mode === 'setup'
+      ? 'Vault data was deleted in another tab. Create a new vault to continue.'
+      : 'Vault changed in another tab. Unlock the latest version to continue.';
+    lockVault(mode, false, message);
   });
 
   if (typeof BroadcastChannel === 'function') {
