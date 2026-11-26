@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'contextkey-shell-v10';
+const CACHE_NAME = 'contextkey-shell-v11';
 const APP_FILES = [
   './',
   './index.html',

@@ -118,7 +118,7 @@ test('storage errors do not commit an unsaved entry to the in-memory vault', () 
 });
 
 test('service worker cache is versioned and offline HTML fallback is navigation-only', () => {
-  assert.match(sw, /contextkey-shell-v10/);
+  assert.match(sw, /contextkey-shell-v11/);
   assert.match(sw, /event\.request\.mode === 'navigate'/);
   const fetchHandler = sw.slice(sw.indexOf("self.addEventListener('fetch'"));
   assert.match(fetchHandler, /if \(event\.request\.mode === 'navigate'\) return caches\.match\('\.\/index\.html'\)/);
@@ -168,7 +168,7 @@ test('entry editor exposes a live character count and imported vaults have a bou
   assert.match(html, /id="content-count"/);
   assert.match(app, /function updateContentCount\(\)/);
   assert.match(app, /value\.items\.length > 500/);
-  assert.match(app, /more than the supported 500 entries/);
+  assert.match(app, /value\.items\.length > 500/);
 });
 
 
@@ -210,15 +210,17 @@ test('portable import requires explicit item selection and confirmation', () => 
 });
 
 
-test('vault loading rejects malformed and oversized entries instead of silently dropping or truncating data', () => {
-  const start = app.indexOf('function cleanVault(value)');
-  const end = app.indexOf('\nfunction setButtonBusy', start);
+test('backup loading rejects malformed and oversized entries instead of silently dropping or repairing them', () => {
+  const start = app.indexOf('function validateBackupVault(value)');
+  const end = app.indexOf('\nasync function decryptVaultEnvelope', start);
   const loader = app.slice(start, end);
   assert.match(loader, /value\.version !== 1/);
   assert.match(loader, /value\.items\.map/);
   assert.doesNotMatch(loader, /value\.items\.filter/);
   assert.match(loader, /No vault data was changed/);
-  assert.match(loader, /item\.title\.length > 70 \|\| item\.content\.length > 1400/);
+  assert.match(loader, /item\.title\.length > 70/);
+  assert.match(loader, /item\.content\.length > 1400/);
+  assert.match(loader, /ids\.has\(item\.id\)/);
   assert.doesNotMatch(loader, /item\.(?:title|content)\.slice/);
 });
 
@@ -251,7 +253,7 @@ test('Markdown and text imports are local, bounded, editable, selectable, and pr
   assert.match(app, /data-markdown-title/);
   assert.match(app, /data-markdown-content/);
   assert.match(app, /await persistVault\(nextVault\)/);
-  assert.match(sw, /contextkey-shell-v10/);
+  assert.match(sw, /contextkey-shell-v11/);
 });
 
 
@@ -261,7 +263,7 @@ test('release foundation includes mobile navigation, legal links, favicon metada
  assert.match(html,/rel="apple-touch-icon"/); assert.match(app,/function closeMobileMenu\(/);
  assert.match(app,/event\.key === 'Escape'/); assert.match(css,/overflow-x:hidden/);
  assert.match(workflow,/privacy\.html terms\.html 404\.html legal\.css legal\.js/);
- assert.match(sw,/contextkey-shell-v10/);
+ assert.match(sw,/contextkey-shell-v11/);
 });
 
 
@@ -291,4 +293,25 @@ test('all local links and assets on public HTML pages resolve', () => {
       assert.ok(existsSync(fileUrl), page + ' has a broken local reference: ' + target);
     }
   }
+});
+
+
+test('encrypted backup decoding rejects non-canonical base64 and strict vault validation rejects silent repair', () => {
+  assert.ok(app.includes('bytesToBase64(salt) !== envelope.salt'));
+  assert.ok(app.includes('bytesToBase64(iv) !== envelope.iv'));
+  assert.ok(app.includes('bytesToBase64(data) !== envelope.data'));
+  assert.ok(app.includes('function validateBackupVault(value)'));
+  assert.ok(app.includes('ids.has(item.id)'));
+  assert.ok(app.includes('!SECTION_ORDER.includes(item.section)'));
+  assert.ok(app.includes("typeof item.shareable !== 'boolean'"));
+});
+
+test('restore binds confirmation to the exact verified backup snapshot', () => {
+  assert.ok(app.includes('restoreVerifiedSnapshot = JSON.stringify(pendingBackup)'));
+  assert.ok(app.includes('JSON.stringify(pendingBackup) !== restoreVerifiedSnapshot'));
+  const start = app.indexOf('function confirmRestore');
+  const end = app.indexOf('async function wipeVault', start);
+  const restore = app.slice(start, end);
+  assert.ok(restore.indexOf('decodeVaultEnvelope(pendingBackup)') < restore.indexOf('localStorage.setItem'));
+  assert.ok(restore.includes('localStorage.setItem(STORAGE_KEY, restoreVerifiedSnapshot)'));
 });
