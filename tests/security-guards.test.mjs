@@ -329,6 +329,7 @@ test('stale asynchronous backup verification cannot mutate a newer restore attem
   assert.match(verify, /verificationGeneration !== restoreGeneration \|\| pendingBackup !== backupToVerify/);
   assert.match(verify, /if \(verificationGeneration === restoreGeneration\)/);
   assert.match(app, /if \(fileGeneration !== restoreGeneration\) return/);
+  assert.match(app, /addEventListener\('close', \(\) => \{\s*if \(pendingBackup \|\| restoreVerified \|\| restoreInProgress\) clearRestoreState\(\)/);
 });
 
 test('restore binds confirmation to the exact verified backup snapshot', () => {
