@@ -16,6 +16,7 @@ let toastTimer = null;
 let pendingBackup = null;
 let restoreVerified = false;
 let restoreVerifiedSnapshot = null;
+let restoreGeneration = 0;
 let restoreInProgress = false;
 let isSaving = false;
 let lockRequested = false;
@@ -644,6 +645,7 @@ function downloadEncryptedBackup() {
   }
 }
 function clearRestoreState() {
+  restoreGeneration += 1;
   pendingBackup = null;
   restoreVerified = false;
   restoreVerifiedSnapshot = null;
@@ -671,11 +673,13 @@ async function restoreBackup(file) {
     return showToast('Finish the current save before restoring a backup.');
   }
   clearRestoreState();
+  const fileGeneration = restoreGeneration;
   try {
     if (file.size > 7 * 1024 * 1024) {
       throw new Error('This backup is larger than the supported 7 MiB limit.');
     }
     const fileText = await file.text();
+    if (fileGeneration !== restoreGeneration) return;
     const backup = JSON.parse(fileText);
     decodeVaultEnvelope(backup);
     pendingBackup = backup;
@@ -701,15 +705,21 @@ async function verifyBackup() {
     $('restore-passphrase').focus();
     return;
   }
+  const verificationGeneration = restoreGeneration;
+  const backupToVerify = pendingBackup;
+  restoreVerified = false;
+  restoreVerifiedSnapshot = null;
+  $('restore-confirm-step').hidden = true;
+  $('restore-verify-step').hidden = false;
   restoreInProgress = true;
   setButtonBusy($('verify-backup'), true, 'Verifying…');
   $('restore-error').textContent = '';
   try {
-    const result = await decryptVaultEnvelope(pendingBackup, passphrase, validateBackupVault);
+    const result = await decryptVaultEnvelope(backupToVerify, passphrase, validateBackupVault);
+    if (verificationGeneration !== restoreGeneration || pendingBackup !== backupToVerify) return;
     const itemCount = result.vault.items.length;
     restoreVerified = true;
-    restoreVerifiedSnapshot = JSON.stringify(pendingBackup);
-    $('restore-passphrase').value = '';
+    restoreVerifiedSnapshot = JSON.stringify(backupToVerify);
     $('restore-verify-step').hidden = true;
     $('restore-confirm-step').hidden = false;
     $('restore-summary').textContent = `This encrypted backup contains ${itemCount} ${itemCount === 1 ? 'entry' : 'entries'}.`;
@@ -717,13 +727,17 @@ async function verifyBackup() {
     $('restore-copy').textContent = 'The passphrase is correct. Confirm only if you intend to replace the vault on this device.';
     $('confirm-restore').focus();
   } catch (error) {
-    $('restore-passphrase').value = '';
+    if (verificationGeneration !== restoreGeneration || pendingBackup !== backupToVerify) return;
+    restoreVerified = false;
     $('restore-error').textContent = error.name === 'OperationError'
       ? 'That passphrase did not unlock this backup.'
       : (error.message || 'Could not verify this backup.');
   } finally {
-    restoreInProgress = false;
-    setButtonBusy($('verify-backup'), false);
+    if (verificationGeneration === restoreGeneration) {
+      $('restore-passphrase').value = '';
+      restoreInProgress = false;
+      setButtonBusy($('verify-backup'), false);
+    }
   }
 }
 function confirmRestore() {
