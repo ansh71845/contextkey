@@ -554,6 +554,81 @@ async function main() {
     assert.equal(await failedSavePage.locator('#item-name').inputValue(), 'Unsaved sample', 'failed save should preserve the draft for retry');
     await failedSaveContext.close();
 
+    const untrustedContentContext = await browser.newContext(mobile);
+    const untrustedContentPage = await untrustedContentContext.newPage();
+    await createVault(untrustedContentPage, PASS_A);
+    const hostileTitle = '<img src=x onerror="window.__contextKeyXss=1">';
+    const hostileContent = '<svg onload="window.__contextKeyXss=2"></svg><script>window.__contextKeyXss=3</script>';
+    await addEntry(untrustedContentPage, hostileTitle, hostileContent, true);
+    const libraryInjection = await untrustedContentPage.evaluate(() => ({
+      elements: document.querySelectorAll('#context-list img, #context-list svg, #context-list script').length,
+      titleText: document.querySelector('#context-list h3')?.textContent,
+      contentText: document.querySelector('#context-list .context-item p')?.textContent
+    }));
+    assert.equal(libraryInjection.elements, 0, 'untrusted library text must never create active HTML elements');
+    assert.equal(libraryInjection.titleText, hostileTitle, 'library title should be rendered as literal text');
+    assert.equal(libraryInjection.contentText, hostileContent, 'library content should be rendered as literal text');
+    assert.equal(await untrustedContentPage.evaluate(() => window.__contextKeyXss || 0), 0,
+      'library entry text must not execute markup event handlers');
+
+    await navigate(untrustedContentPage, 'share');
+    const packInjection = await untrustedContentPage.evaluate(() => ({
+      elements: document.querySelectorAll('#pack-items img, #pack-items svg, #pack-items script').length,
+      text: document.querySelector('#pack-items')?.textContent || ''
+    }));
+    assert.equal(packInjection.elements, 0, 'context pack choices must render untrusted values as text');
+    assert.ok(packInjection.text.includes(hostileTitle));
+    assert.equal(await untrustedContentPage.evaluate(() => window.__contextKeyXss || 0), 0);
+
+    const importTimestamp = new Date().toISOString();
+    const portableAttackId = 'id"><img src=x onerror="window.__contextKeyXss=4">';
+    const portableAttackTitle = 'Portable <img src=x onerror="window.__contextKeyXss=5">';
+    const portableAttackContent = 'Imported <svg onload="window.__contextKeyXss=6"></svg>';
+    await untrustedContentPage.locator('#portable-import-file').setInputFiles({
+      name: 'untrusted-context.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({
+        format: 'contextkey-context',
+        schemaVersion: 1,
+        exportedAt: importTimestamp,
+        items: [{
+          id: portableAttackId, section: 'About', title: portableAttackTitle,
+          content: portableAttackContent, shareable: false,
+          createdAt: importTimestamp, updatedAt: importTimestamp
+        }]
+      }))
+    });
+    await untrustedContentPage.locator('#portable-import-dialog').waitFor({ state: 'visible' });
+    const portableInjection = await untrustedContentPage.evaluate(() => ({
+      elements: document.querySelectorAll('#portable-import-list img, #portable-import-list svg, #portable-import-list script').length,
+      text: document.querySelector('#portable-import-list')?.textContent || '',
+      id: document.querySelector('#portable-import-list [data-import-id]')?.getAttribute('data-import-id')
+    }));
+    assert.equal(portableInjection.elements, 0, 'portable import preview must not create elements from untrusted IDs or text');
+    assert.ok(portableInjection.text.includes(portableAttackTitle));
+    assert.equal(portableInjection.id, portableAttackId, 'escaped import IDs must retain their exact data value');
+    assert.equal(await untrustedContentPage.evaluate(() => window.__contextKeyXss || 0), 0);
+    await untrustedContentPage.locator('#portable-import-cancel').click();
+
+    const markdownAttackTitle = '<svg onload="window.__contextKeyXss=7">';
+    const markdownAttackContent = 'Markdown <img src=x onerror="window.__contextKeyXss=8">';
+    await untrustedContentPage.locator('#markdown-import-file').setInputFiles({
+      name: 'untrusted-notes.md',
+      mimeType: 'text/markdown',
+      buffer: Buffer.from('# ' + markdownAttackTitle + '\\n' + markdownAttackContent)
+    });
+    await untrustedContentPage.locator('#markdown-import-dialog').waitFor({ state: 'visible' });
+    const markdownInjection = await untrustedContentPage.evaluate(() => ({
+      elements: document.querySelectorAll('#markdown-import-list img, #markdown-import-list svg, #markdown-import-list script').length,
+      text: document.querySelector('#markdown-import-list')?.textContent || ''
+    }));
+    assert.equal(markdownInjection.elements, 0, 'Markdown preview must render imported content as literal text');
+    assert.ok(markdownInjection.text.includes(markdownAttackTitle));
+    assert.ok(markdownInjection.text.includes(markdownAttackContent));
+    assert.equal(await untrustedContentPage.evaluate(() => window.__contextKeyXss || 0), 0);
+    await untrustedContentPage.locator('#markdown-import-cancel').click();
+    await untrustedContentContext.close();
+
     const oversizedContext = await browser.newContext(mobile);
     const oversizedPage = await oversizedContext.newPage();
     await oversizedPage.goto(BASE_URL);
