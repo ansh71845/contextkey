@@ -375,7 +375,7 @@ async function main() {
     }), false, 'a stale file-read rejection must not replace the active restore UI with an old error');
     await staleRestoreReadPage.locator('#restore-passphrase').fill(PASS_B);
     await staleRestoreReadPage.locator('#verify-backup').click();
-    await staleRestoreReadPage.getByText('Backup verified').waitFor();
+    await staleRestoreReadPage.getByRole('heading', { name: 'Backup verified' }).waitFor();
     await staleRestoreReadPage.locator('#cancel-restore').click();
     assert.equal(await staleRestoreReadPage.getByText('Current before stale read', { exact: true }).count(), 1,
       'the current vault must remain intact after a stale rejected file read');
