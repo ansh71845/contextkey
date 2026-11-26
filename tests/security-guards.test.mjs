@@ -7,6 +7,7 @@ const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
 const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 const workflow = readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8');
+const vercel = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
 
 function relativeLuminance(hex) {
   const channels = hex.replace('#', '').match(/.{2}/g).map((part) => parseInt(part, 16) / 255);
@@ -383,4 +384,27 @@ test('same-origin session changes clear the stale vault and broadcast lock-only 
   assert.match(app, /event\.data\?\.type !== 'lock'/);
   assert.match(app, /vaultStorageSnapshot = storedSnapshot/);
   assert.match(app, /localStorage\.getItem\(STORAGE_KEY\) !== storedSnapshot/);
+});
+
+test('Vercel sends baseline security headers and every public page has a restrictive CSP', () => {
+  const globalRule = vercel.headers.find((rule) => rule.source === '/(.*)');
+  assert.ok(globalRule, 'all Vercel routes must receive the global security headers');
+  const headers = new Map(globalRule.headers.map(({ key, value }) => [key.toLowerCase(), value]));
+  assert.equal(headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(headers.get('x-frame-options'), 'DENY');
+  assert.equal(headers.get('referrer-policy'), 'no-referrer');
+  assert.equal(headers.get('strict-transport-security'), 'max-age=31536000; includeSubDomains');
+  assert.equal(headers.get('permissions-policy'), 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+  const policy = headers.get('content-security-policy');
+  assert.ok(policy, 'Vercel must send a Content-Security-Policy response header');
+  for (const directive of [
+    "default-src 'self'", "script-src 'self'", "style-src 'self'",
+    "object-src 'none'", "base-uri 'none'", "form-action 'self'", "frame-ancestors 'none'"
+  ]) assert.ok(policy.includes(directive), 'missing CSP directive: ' + directive);
+  assert.doesNotMatch(policy, /unsafe-inline|unsafe-eval/);
+
+  for (const page of ['index.html', 'privacy.html', 'terms.html', '404.html']) {
+    const source = readFileSync(new URL('../' + page, import.meta.url), 'utf8');
+    assert.match(source, /<meta http-equiv="Content-Security-Policy"/, page + ' must provide the static-host CSP policy');
+  }
 });
