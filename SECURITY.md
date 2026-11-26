@@ -6,6 +6,8 @@ ContextKey is an experimental, local-first MVP. It encrypts vault data stored by
 
 Context packs copied or downloaded from the app are plaintext. Users should review them before sharing and avoid storing highly sensitive information in ContextKey.
 
+Same-origin tabs coordinate lock events and listen for changes to the encrypted browser-storage record. Newer app versions serialize vault writes with the Web Locks API where supported and reject writes whose encrypted starting snapshot is stale. Browsers without Web Locks fall back to a synchronous snapshot check, which cannot provide the same cross-tab transaction guarantee. Different origins, such as the Vercel and GitHub Pages deployments, have separate browser storage and cannot coordinate sessions.
+
 ## Reporting a vulnerability
 
 Please do not publish exploit details, private vault contents, passphrases, or backup files in public issues or discussions.
