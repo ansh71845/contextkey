@@ -697,6 +697,7 @@ async function restoreBackup(file) {
     $('restore-dialog').showModal();
     $('restore-passphrase').focus();
   } catch (error) {
+    if (fileGeneration !== restoreGeneration) return;
     showToast(error.message || 'This file could not be read as a ContextKey backup.');
     $('restore-file').value = '';
   }
