@@ -330,6 +330,50 @@ async function main() {
     assert.equal(await restorePage.getByText('Current sample', { exact: true }).count(), 0);
     await restoreContext.close();
 
+    const restoreRaceContext = await browser.newContext(mobile);
+    const restoreRacePage = await restoreRaceContext.newPage();
+    await createVault(restoreRacePage, PASS_A);
+    await restoreRacePage.evaluate(() => {
+      const originalDecrypt = decryptVaultEnvelope;
+      let calls = 0;
+      decryptVaultEnvelope = async (...args) => {
+        calls += 1;
+        if (calls === 1) await new Promise((resolve) => setTimeout(resolve, 500));
+        return originalDecrypt(...args);
+      };
+    });
+    await restoreRacePage.locator('#restore-file').setInputFiles({
+      name: 'stale-verification.ckvault',
+      mimeType: 'application/json',
+      buffer: backupBuffer
+    });
+    await restoreRacePage.locator('#restore-dialog').waitFor({ state: 'visible' });
+    await restoreRacePage.locator('#restore-passphrase').fill(PASS_B);
+    await restoreRacePage.locator('#verify-backup').click();
+    await restoreRacePage.waitForFunction(() => restoreInProgress === true);
+    await restoreRacePage.locator('#cancel-restore').click();
+    await restoreRacePage.locator('#restore-dialog').waitFor({ state: 'hidden' });
+    await restoreRacePage.locator('#restore-file').setInputFiles({
+      name: 'new-verification.ckvault',
+      mimeType: 'application/json',
+      buffer: backupBuffer
+    });
+    await restoreRacePage.locator('#restore-dialog').waitFor({ state: 'visible' });
+    await restoreRacePage.locator('#restore-passphrase').fill('incorrect-passphrase');
+    await restoreRacePage.locator('#verify-backup').click();
+    await restoreRacePage.getByText('That passphrase did not unlock this backup.').waitFor();
+    await restoreRacePage.waitForTimeout(650);
+    assert.equal(await restoreRacePage.locator('#restore-verify-step').isVisible(), true,
+      'a stale successful verification must not advance a newly opened restore dialog');
+    assert.equal(await restoreRacePage.locator('#restore-confirm-step').isVisible(), false,
+      'a stale verification must not enable confirmation for a different restore attempt');
+    assert.equal(await restoreRacePage.locator('#restore-error').innerText(),
+      'That passphrase did not unlock this backup.',
+      'a stale completion must not overwrite the current restore error');
+    assert.equal(await restoreRacePage.locator('#verify-backup').isEnabled(), true,
+      'the current restore attempt must retain control of its verification button');
+    await restoreRaceContext.close();
+
     const blockedContext = await browser.newContext(mobile);
     await blockedContext.addInitScript(() => {
       Object.defineProperty(window, 'localStorage', {
