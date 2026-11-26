@@ -23,6 +23,8 @@ let lockRequested = false;
 let sessionGeneration = 0;
 let pendingPortableItems = [];
 let pendingMarkdownItems = [];
+let portableImportGeneration = 0;
+let markdownImportGeneration = 0;
 
 const SECTION_ORDER = ['About', 'Goals', 'Preferences', 'Skills', 'Projects', 'Rules'];
 const SECTION_LABELS = {
@@ -315,6 +317,8 @@ function clearSession() {
   editingId = null;
   selectedIds.clear();
   packInitialized = false;
+  closePortableImport();
+  closeMarkdownImport();
   ['context-list', 'pack-items'].forEach((id) => { if ($(id)) $(id).replaceChildren(); });
   ['pack-preview', 'item-name', 'item-content', 'search-items', 'unlock-pass', 'new-pass', 'confirm-pass'].forEach((id) => {
     if ($(id)) $(id).value = '';
@@ -868,6 +872,7 @@ function validatePortableDocument(value) {
 }
 
 function closePortableImport() {
+  portableImportGeneration += 1;
   const dialog = $('portable-import-dialog');
   if (dialog.open) dialog.close();
   pendingPortableItems = [];
@@ -914,12 +919,17 @@ function renderPortableImport(items) {
 }
 
 async function previewPortableImport(file) {
-  if (!file) return;
+  if (!file || !vault) return;
+  const fileGeneration = ++portableImportGeneration;
+  const importSession = sessionGeneration;
   try {
     if (file.size > PORTABLE_MAX_BYTES) throw new Error('This context file is larger than the supported 2 MiB limit.');
-    const items = validatePortableDocument(JSON.parse(await file.text()));
+    const fileText = await file.text();
+    if (fileGeneration !== portableImportGeneration || importSession !== sessionGeneration || !vault) return;
+    const items = validatePortableDocument(JSON.parse(fileText));
     renderPortableImport(items);
   } catch (error) {
+    if (fileGeneration !== portableImportGeneration || importSession !== sessionGeneration) return;
     showToast(error.message || 'This context file could not be read.');
     $('portable-import-file').value = '';
   }
@@ -1026,6 +1036,7 @@ function parseMarkdownMemory(text, filename) {
   return entries.map((item) => ({ title: item.title, content: item.content, section: 'About', shareable: false }));
 }
 function closeMarkdownImport() {
+  markdownImportGeneration += 1;
   const dialog = $('markdown-import-dialog');
   if (dialog.open) dialog.close();
   pendingMarkdownItems = [];
@@ -1057,12 +1068,17 @@ function renderMarkdownImport(items) {
   $('markdown-import-dialog').showModal();
 }
 async function previewMarkdownImport(file) {
-  if (!file) return;
+  if (!file || !vault) return;
+  const fileGeneration = ++markdownImportGeneration;
+  const importSession = sessionGeneration;
   try {
     if (file.size > 100 * 1024) throw new Error('Notes files must be 100 KiB or smaller.');
-    const parsed = parseMarkdownMemory(await file.text(), file.name);
+    const fileText = await file.text();
+    if (fileGeneration !== markdownImportGeneration || importSession !== sessionGeneration || !vault) return;
+    const parsed = parseMarkdownMemory(fileText, file.name);
     renderMarkdownImport(parsed);
   } catch (error) {
+    if (fileGeneration !== markdownImportGeneration || importSession !== sessionGeneration) return;
     showToast(error.message || 'Could not read this notes file.');
     $('markdown-import-file').value = '';
   }

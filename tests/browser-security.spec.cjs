@@ -220,6 +220,106 @@ async function main() {
       'the encrypted save should still be available after a deliberate unlock');
     await lockRaceContext.close();
 
+    const importTimestamp = new Date().toISOString();
+    const portableFixture = (id, title) => Buffer.from(JSON.stringify({
+      format: 'contextkey-context',
+      schemaVersion: 1,
+      exportedAt: importTimestamp,
+      items: [{ id, section: 'About', title, content: 'Private import fixture content.', shareable: false, createdAt: importTimestamp, updatedAt: importTimestamp }]
+    }));
+    const competingImportContext = await browser.newContext(mobile);
+    const competingImportPage = await competingImportContext.newPage();
+    await createVault(competingImportPage, PASS_A);
+    await competingImportPage.evaluate(() => {
+      const originalText = File.prototype.text;
+      File.prototype.text = function () {
+        const result = originalText.call(this);
+        if (this.name === 'slow-first.json') {
+          return new Promise((resolve, reject) => setTimeout(() => result.then(resolve, reject), 600));
+        }
+        return result;
+      };
+    });
+    await competingImportPage.locator('#portable-import-file').setInputFiles({
+      name: 'slow-first.json', mimeType: 'application/json',
+      buffer: portableFixture('slow-id', 'Stale first file')
+    });
+    await competingImportPage.locator('#portable-import-file').setInputFiles({
+      name: 'fast-second.json', mimeType: 'application/json',
+      buffer: portableFixture('fast-id', 'Current second file')
+    });
+    await competingImportPage.locator('#portable-import-dialog').waitFor({ state: 'visible' });
+    assert.equal(await competingImportPage.locator('#portable-import-list').getByText('Current second file').count(), 1,
+      'the newest selected JSON file should own the preview');
+    await competingImportPage.waitForTimeout(700);
+    assert.equal(await competingImportPage.locator('#portable-import-list').getByText('Stale first file').count(), 0,
+      'a slower earlier JSON read must not overwrite the newer preview');
+    assert.equal(await competingImportPage.locator('#portable-import-list').getByText('Current second file').count(), 1);
+    await competingImportPage.locator('#portable-import-cancel').click();
+    await competingImportContext.close();
+
+    const portableLockContext = await browser.newContext(mobile);
+    const portableLockPage = await portableLockContext.newPage();
+    await createVault(portableLockPage, PASS_A);
+    await portableLockPage.evaluate(() => {
+      const originalText = File.prototype.text;
+      File.prototype.text = function () {
+        const result = originalText.call(this);
+        if (this.name === 'delayed-private.json') {
+          return new Promise((resolve, reject) => setTimeout(() => result.then(resolve, reject), 600));
+        }
+        return result;
+      };
+    });
+    await portableLockPage.locator('#portable-import-file').setInputFiles({
+      name: 'delayed-private.json', mimeType: 'application/json',
+      buffer: portableFixture('locked-json-id', 'Sensitive JSON preview')
+    });
+    await portableLockPage.waitForFunction(() => portableImportGeneration > 0);
+    await portableLockPage.locator('#lock-button').click();
+    await portableLockPage.locator('#gate').waitFor({ state: 'visible' });
+    await portableLockPage.waitForTimeout(700);
+    assert.equal(await portableLockPage.locator('#portable-import-dialog').isVisible(), false,
+      'locking must close a pending JSON import preview');
+    assert.equal(await portableLockPage.evaluate(() => pendingPortableItems.length), 0,
+      'locking must clear pending JSON import data');
+    assert.equal(await portableLockPage.getByText('Sensitive JSON preview').count(), 0,
+      'a stale JSON read must not reinsert imported content after lock');
+    await portableLockContext.close();
+
+    const markdownLockContext = await browser.newContext(mobile);
+    const markdownLockPage = await markdownLockContext.newPage();
+    await createVault(markdownLockPage, PASS_A);
+    const markdownFixture = '# Sensitive Markdown preview\nPrivate imported note.';
+    assert.deepEqual(await markdownLockPage.evaluate((text) => parseMarkdownMemory(text, 'fixture.md'), markdownFixture), [
+      { title: 'Sensitive Markdown preview', content: 'Private imported note.', section: 'About', shareable: false }
+    ]);
+    await markdownLockPage.evaluate(() => {
+      const originalText = File.prototype.text;
+      File.prototype.text = function () {
+        const result = originalText.call(this);
+        if (this.name === 'delayed-private.md') {
+          return new Promise((resolve, reject) => setTimeout(() => result.then(resolve, reject), 600));
+        }
+        return result;
+      };
+    });
+    await markdownLockPage.locator('#markdown-import-file').setInputFiles({
+      name: 'delayed-private.md', mimeType: 'text/markdown',
+      buffer: Buffer.from(markdownFixture)
+    });
+    await markdownLockPage.waitForFunction(() => markdownImportGeneration > 0);
+    await markdownLockPage.locator('#lock-button').click();
+    await markdownLockPage.locator('#gate').waitFor({ state: 'visible' });
+    await markdownLockPage.waitForTimeout(700);
+    assert.equal(await markdownLockPage.locator('#markdown-import-dialog').isVisible(), false,
+      'locking must close a pending Markdown import preview');
+    assert.equal(await markdownLockPage.evaluate(() => pendingMarkdownItems.length), 0,
+      'locking must clear pending Markdown import data');
+    assert.equal(await markdownLockPage.getByText('Sensitive Markdown preview').count(), 0,
+      'a stale Markdown read must not reinsert imported content after lock');
+    await markdownLockContext.close();
+
     const backupContext = await browser.newContext({ ...mobile, acceptDownloads: true });
     const backupPage = await backupContext.newPage();
     await createVault(backupPage, PASS_B);
