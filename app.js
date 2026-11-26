@@ -831,15 +831,26 @@ async function confirmRestore() {
     return;
   }
   restoreInProgress = true;
+  const restoreAttemptGeneration = restoreGeneration;
+  const backupSnapshot = restoreVerifiedSnapshot;
   setButtonBusy($('confirm-restore'), true, 'Restoring…');
   try {
     decodeVaultEnvelope(pendingBackup);
-    await withVaultStorageLock(() => localStorage.setItem(STORAGE_KEY, restoreVerifiedSnapshot));
+    await withVaultStorageLock(() => {
+      if (restoreAttemptGeneration !== restoreGeneration || backupSnapshot !== restoreVerifiedSnapshot) {
+        const cancelled = new Error('Restore was cancelled because the dialog or vault session changed.');
+        cancelled.name = 'AbortError';
+        throw cancelled;
+      }
+      localStorage.setItem(STORAGE_KEY, backupSnapshot);
+    });
     closeRestoreDialog();
     lockVault();
     showToast('Backup restored. Unlock it with the passphrase used to create it.');
   } catch (error) {
-    $('restore-confirm-error').textContent = storageErrorMessage(error, 'Browser storage could not restore this backup. Your current vault was not changed.');
+    if (error?.name !== 'AbortError') {
+      $('restore-confirm-error').textContent = storageErrorMessage(error, 'Browser storage could not restore this backup. Your current vault was not changed.');
+    }
   } finally {
     restoreInProgress = false;
     setButtonBusy($('confirm-restore'), false);
@@ -1249,7 +1260,7 @@ function init() {
       showGate('unlock', 'Browser storage could not reset the vault. Check site storage permissions and try again.');
     }
   });
-  $('lock-button').addEventListener('click', lockVault);
+  $('lock-button').addEventListener('click', () => lockVault());
   $('mobile-menu-toggle').addEventListener('click', () => {
     const navigation = $('workspace-navigation');
     const opening = !navigation.classList.contains('is-open');
