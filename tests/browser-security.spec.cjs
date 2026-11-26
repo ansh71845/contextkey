@@ -580,7 +580,7 @@ async function main() {
     assert.ok(packInjection.text.includes(hostileTitle));
     assert.equal(await untrustedContentPage.evaluate(() => window.__contextKeyXss || 0), 0);
 
-    const xssImportTimestamp = new Date().toISOString();
+    const untrustedPreviewFixtureTimestamp = new Date().toISOString();
     const portableAttackId = 'id"><img src=x onerror="window.__contextKeyXss=4">';
     const portableAttackTitle = 'Portable <img src=x onerror="window.__contextKeyXss=5">';
     const portableAttackContent = 'Imported <svg onload="window.__contextKeyXss=6"></svg>';
@@ -590,11 +590,11 @@ async function main() {
       buffer: Buffer.from(JSON.stringify({
         format: 'contextkey-context',
         schemaVersion: 1,
-        exportedAt: xssImportTimestamp,
+        exportedAt: untrustedPreviewFixtureTimestamp,
         items: [{
           id: portableAttackId, section: 'About', title: portableAttackTitle,
           content: portableAttackContent, shareable: false,
-          createdAt: xssImportTimestamp, updatedAt: xssImportTimestamp
+          createdAt: untrustedPreviewFixtureTimestamp, updatedAt: untrustedPreviewFixtureTimestamp
         }]
       }))
     });
