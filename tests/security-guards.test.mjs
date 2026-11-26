@@ -311,11 +311,11 @@ test('normal vault unlock keeps legacy normalization separate from strict backup
   const unlockStart = app.indexOf('async function unlockVault');
   const unlockEnd = app.indexOf('function clearSession', unlockStart);
   const unlock = app.slice(unlockStart, unlockEnd);
-  assert.match(unlock, /decryptVaultEnvelope\\(stored, pass, normalizeStoredVault\\)/);
+  assert.match(unlock, /decryptVaultEnvelope\(stored, pass, normalizeStoredVault\)/);
   const restoreStart = app.indexOf('async function verifyBackup');
   const restoreEnd = app.indexOf('function confirmRestore', restoreStart);
   const restore = app.slice(restoreStart, restoreEnd);
-  assert.match(restore, /decryptVaultEnvelope\\(pendingBackup, passphrase, validateBackupVault\\)/);
+  assert.match(restore, /decryptVaultEnvelope\(pendingBackup, passphrase, validateBackupVault\)/);
 });
 
 test('restore binds confirmation to the exact verified backup snapshot', () => {
