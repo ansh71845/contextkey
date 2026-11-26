@@ -56,12 +56,13 @@ test('locking removes decrypted DOM content and clears local editing state', () 
   assert.match(clear, /item-form.*reset/s);
   assert.match(clear, /closePortableImport\(\)/);
   assert.match(clear, /closeMarkdownImport\(\)/);
+  assert.match(clear, /closeRestoreDialog\\(\\)/);
   assert.match(app, /let portableImportGeneration = 0/);
   assert.match(app, /let markdownImportGeneration = 0/);
   assert.match(app, /fileGeneration !== portableImportGeneration \|\| importSession !== sessionGeneration \|\| !vault/);
   assert.match(app, /fileGeneration !== markdownImportGeneration \|\| importSession !== sessionGeneration \|\| !vault/);
 
-  assert.match(app, /function lockVault\\(mode = 'unlock', broadcast = true, error = ''\\)[\\s\\S]*?if \\(isSaving\\)/);
+  assert.match(app, /function lockVault\(mode = 'unlock', broadcast = true, error = ''\)[\s\S]*?if \(isSaving\)/);
   assert.match(app, /lockRequested = true/);
   assert.match(app, /function finishPendingLock\(\)/);
 });
@@ -235,9 +236,9 @@ test('locking waits for pending encrypted saves and then invalidates the decrypt
   assert.match(app, /let sessionGeneration = 0/);
   assert.match(app, /sessionGeneration \+= 1/);
   assert.match(app, /saveGeneration !== sessionGeneration/);
-  assert.match(app, /function lockVault\\(mode = 'unlock', broadcast = true, error = ''\\)[\\s\\S]*?if \\(isSaving\\)/);
+  assert.match(app, /function lockVault\(mode = 'unlock', broadcast = true, error = ''\)[\s\S]*?if \(isSaving\)/);
   assert.match(app, /lockRequested = true/);
-  assert.match(app, /if \(lockRequested\) lockVault\(\)/);
+  assert.match(app, /finishPendingLock\(\)/);
 });
 
 test('Markdown import preserves preamble text and does not split headings inside fenced code', () => {
@@ -361,6 +362,25 @@ test('same-origin tabs serialize writes, reject stale snapshots, and coordinate 
   assert.match(app, /postMessage\(\{ type: 'lock', version: 1 \}\)/);
   assert.match(app, /event\.data\?\.type !== 'lock'/);
   assert.match(app, /Vault changed in another tab/);
+  assert.match(app, /vaultStorageSnapshot = storedSnapshot/);
+  assert.match(app, /localStorage\.getItem\(STORAGE_KEY\) !== storedSnapshot/);
+});
+
+test('vault writes compare encrypted snapshots inside an origin-wide lock', () => {
+  assert.match(app, /async function withVaultStorageLock\(operation\)/);
+  assert.match(app, /navigator\.locks\.request\(VAULT_STORAGE_LOCK, \{ mode: 'exclusive' \}/);
+  assert.match(app, /const expectedSnapshot = vaultStorageSnapshot/);
+  assert.match(app, /currentSnapshot !== expectedSnapshot/);
+  assert.match(app, /name = 'VaultConflictError'/);
+  assert.match(app, /vaultStorageSnapshot = serialized/);
+});
+
+test('same-origin session changes clear the stale vault and broadcast lock-only messages', () => {
+  assert.match(app, /function initCrossTabCoordination\(\)/);
+  assert.match(app, /addEventListener\('storage'/);
+  assert.match(app, /new BroadcastChannel\('contextkey-session-v1'\)/);
+  assert.match(app, /postMessage\(\{ type: 'lock', version: 1 \}\)/);
+  assert.match(app, /event\.data\?\.type !== 'lock'/);
   assert.match(app, /vaultStorageSnapshot = storedSnapshot/);
   assert.match(app, /localStorage\.getItem\(STORAGE_KEY\) !== storedSnapshot/);
 });
