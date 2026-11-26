@@ -638,6 +638,75 @@ async function main() {
     await responsivePage.locator('#view-overview').waitFor({ state: 'visible' });
     await responsiveContext.close();
 
+    const crossTabContext = await browser.newContext(mobile);
+    const primaryTab = await crossTabContext.newPage();
+    await createVault(primaryTab, PASS_A);
+    await addEntry(primaryTab, 'Cross-tab baseline', 'This entry is shared between same-origin tabs.', false);
+
+    const secondTab = await crossTabContext.newPage();
+    await secondTab.goto(BASE_URL);
+    await secondTab.locator('#unlock-pass').fill(PASS_A);
+    await secondTab.locator('#unlock-vault').click();
+    await secondTab.locator('#app').waitFor({ state: 'visible' });
+    await navigate(secondTab, 'library');
+    await secondTab.locator('#item-name').fill('Update from second tab');
+    await secondTab.locator('#item-content').fill('A write in one tab must invalidate the other tab session.');
+    await secondTab.locator('#item-form button[type="submit"]').click();
+    await secondTab.getByText('Update from second tab', { exact: true }).waitFor();
+
+    await primaryTab.locator('#gate').waitFor({ state: 'visible' });
+    assert.equal(await primaryTab.locator('#app').isVisible(), false,
+      'a storage update from another tab must lock the stale session');
+    assert.equal(await primaryTab.evaluate(() => vault === null && cryptoKey === null), true,
+      'the stale tab must clear both decrypted vault state and its CryptoKey');
+    assert.equal(await primaryTab.locator('#context-list').innerText(), '',
+      'the stale tab must remove decrypted entry content from the DOM');
+
+    await primaryTab.locator('#unlock-pass').fill(PASS_A);
+    await primaryTab.locator('#unlock-vault').click();
+    await primaryTab.locator('#app').waitFor({ state: 'visible' });
+    await navigate(primaryTab, 'library');
+    await primaryTab.evaluate(() => {
+      const originalEncrypt = encryptObject;
+      window.__delayedCrossTabWriteStarted = false;
+      encryptObject = async (...args) => {
+        window.__delayedCrossTabWriteStarted = true;
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        return originalEncrypt(...args);
+      };
+    });
+    await primaryTab.locator('#item-name').fill('Stale write from primary tab');
+    await primaryTab.locator('#item-content').fill('This delayed write must not replace the newer encrypted snapshot.');
+    await primaryTab.locator('#item-form button[type="submit"]').click();
+    await primaryTab.waitForFunction(() => window.__delayedCrossTabWriteStarted === true);
+
+    await addEntry(secondTab, 'Newer write from second tab', 'This later encrypted snapshot must win.', false);
+    await primaryTab.locator('#gate').waitFor({ state: 'visible' });
+    await primaryTab.waitForTimeout(300);
+    assert.match(await primaryTab.locator('#gate-error').innerText(), /Vault changed in another tab/,
+      'the stale writer should be told that its change was not saved');
+    const committedTitles = await secondTab.evaluate(async (passphrase) => {
+      const envelope = JSON.parse(localStorage.getItem('contextkey.encrypted.v1') || 'null');
+      const result = await decryptVaultEnvelope(envelope, passphrase, normalizeStoredVault);
+      return result.vault.items.map((item) => item.title);
+    }, PASS_A);
+    assert.ok(committedTitles.includes('Newer write from second tab'),
+      'the latest cross-tab save must remain in encrypted storage');
+    assert.equal(committedTitles.includes('Stale write from primary tab'), false,
+      'a stale asynchronous save must never overwrite a newer encrypted snapshot');
+
+    await primaryTab.locator('#unlock-pass').fill(PASS_A);
+    await primaryTab.locator('#unlock-vault').click();
+    await primaryTab.locator('#app').waitFor({ state: 'visible' });
+    await primaryTab.locator('#lock-button').click();
+    await primaryTab.locator('#gate').waitFor({ state: 'visible' });
+    await secondTab.locator('#gate').waitFor({ state: 'visible' });
+    assert.equal(await secondTab.evaluate(() => vault === null && cryptoKey === null), true,
+      'a deliberate lock in one tab must clear the peer tab session');
+    assert.match(await secondTab.locator('#gate-error').innerText(), /locked from another tab/,
+      'the peer tab should explain why it was locked');
+    await crossTabContext.close();
+
     process.stdout.write('ContextKey browser checks passed: explicit sharing, preview, export, lock cleanup, backup verification, restore safety, blocked storage, failed-write rollback, size limits and responsive layout.\n');
   } finally {
     await browser.close();
