@@ -70,7 +70,7 @@ test('saves encrypt the proposed vault before committing it to in-memory state',
 });
 
 test('restore requires successful decryption and explicit replacement confirmation', () => {
-  assert.match(app, /await decryptVaultEnvelope\(pendingBackup, passphrase\)/);
+  assert.match(app, /await decryptVaultEnvelope\(pendingBackup, passphrase, validateBackupVault\)/);
   const verifyStart = app.indexOf('async function verifyBackup');
   const verifyEnd = app.indexOf('\nfunction confirmRestore', verifyStart);
   const verify = app.slice(verifyStart, verifyEnd);
