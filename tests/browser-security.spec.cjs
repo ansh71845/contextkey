@@ -615,7 +615,7 @@ async function main() {
     await untrustedContentPage.locator('#markdown-import-file').setInputFiles({
       name: 'untrusted-notes.md',
       mimeType: 'text/markdown',
-      buffer: Buffer.from('# ' + markdownAttackTitle + '\\n' + markdownAttackContent)
+      buffer: Buffer.from('# ' + markdownAttackTitle + '\n' + markdownAttackContent)
     });
     await untrustedContentPage.locator('#markdown-import-dialog').waitFor({ state: 'visible' });
     const markdownInjection = await untrustedContentPage.evaluate(() => ({
